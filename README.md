@@ -14,3 +14,11 @@ These analyzes answer question such as:
 
 Morover we explain how to learn a model for the failure prediction, fitting a parametric model to determinate the failure score. Machine Learning Models (Random Forests, Gradient Boosted Trees, …)
 can also be fit/compared in addition to at least one parametric model.
+
+AIDA database of (many) Italian companies
+- with historical data (last 10 years from closing)
+- https://www.sba.unipi.it/it/risorse/banche dati/aida
+
+Ateco 2007 classification of industry sectors
+- Italian version of the European NACE classification
+- https://www.istat.it/it/archivio/17888
