@@ -13,6 +13,7 @@ library(skimr)   # advenced summary
 library(ggplot2) # ggplot2 graph
 library(plyr)
 library(hrbrthemes)
+library(forcats)
 ```
 
 Setup & Aida dataset import
@@ -21,11 +22,13 @@ Setup & Aida dataset import
 rm(list=ls())
 
 # working dir
-wdir = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
+#wdir = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
+wdir = "C:/Users/falle/OneDrive - University of Pisa/Data Science/Statistical Methods for Data Science/smdproject2021"
 setwd(wdir)
 
 # import aida dataset
-load(file="../aida.RData")
+#load(file="../aida.RData")
+load(file="aida.RData")
 
 # For each attribute name, replace all white space whit dot symbol
 colnames(aida) <- gsub(" ",".",colnames(aida))
@@ -65,7 +68,7 @@ Legal Status Histogram
 ```{r}
 table(aida$Legal.status)*100/nrow(aida)
 
-ggplot(data=aida, aes(x=Legal.status, fill=Legal.status)) +
+ggplot(data=aida, aes(x=fct_rev(fct_infreq(Legal.status)), fill=Legal.status)) +
   geom_bar() +
   scale_fill_hue(c = 40) +
   theme(legend.position="none") + 
@@ -208,10 +211,112 @@ ggplot(data = roi.df) +
     theme_ipsum() +
     labs(fill='Failed')
 ```
+Size
+```{r}
+# Deleting missing values
+size.df <- aida
+
+b<- nrow(size.df)
+size.df <- size.df[!is.na(size.df$Number.of.employeesLast.avail..yr),]
+size.df <- size.df[!is.na(size.df$`Number.of.employeesYear.-.1`),]
+size.df <- size.df[!is.na(size.df$`Number.of.employeesYear.-.2`),]
+a <- nrow(size.df)
+ratio <- a*100/b
+
+# Add attribute avg.size which rappresents the average size of the last three years.
+size.df$avg.size <- round((size.df$Number.of.employeesLast.avail..yr
+                              + size.df$`Number.of.employeesYear.-.1` + size.df$`Number.of.employeesYear.-.2`)/3)
+
+summary(size.df$avg.size)
+```
+```{r}
+#Long tail distribution, we can try a log transformation
+plot(hist(size.df$avg.size))
+```
+```{r}
+#Adding the log of the size
+size.df$log.avg.size = log(size.df$avg.size) #Rounding?
+```
+```{r}
+plot(hist(size.df$log.avg.size))
+```
+Plot histogram of size distribution by Failed
+```{r}
+h1 = hist(size.df$log.avg.size[size.df$Failed=='No'], plot = FALSE, freq=FALSE)
+h2 = hist(size.df$log.avg.size[size.df$Failed=='Yes'], plot = FALSE, freq=FALSE)
+plot(h1, col = "red")
+plot(h2, col = 'green',add=T)
+```
+Plot density of size distribution by Failed
+```{r}
+d1 = density(size.df$log.avg.size[size.df$Failed=='No'], plot = FALSE)
+d2 = density(size.df$log.avg.size[size.df$Failed=='Yes'], plot = FALSE)
+plot(d1, col = "red", main="Distribution of size by Legal status")
+lines(d2, col = 'green')
+legend("topright", c("Failed","Active"), lty=c(1,1), col = c("red","green"))
+```
+
+Size alternative
+```{r}
+# Number.of.employeesLast.avail..yr
+# Missing values are present (114101), we can replace it with the value of Number.of.employeesYear.-.1 or Number.of.employeesYear.-.2 if present
+# otherwise with the median/mean Size of the corresponding Ateco sectors
+summary(aida$Number.of.employeesLast.avail..yr)
+
+
+aida$Number.of.employeesLast.avail..yr = ifelse(is.na(aida$Number.of.employeesLast.avail..yr),
+                                                aida$`Number.of.employeesYear.-.1`,
+                                                aida$Number.of.employeesLast.avail..yr)
+#63096 remaining NA
+summary(aida$Number.of.employeesLast.avail..yr)
+
+aida$Number.of.employeesLast.avail..yr = ifelse(is.na(aida$Number.of.employeesLast.avail..yr),
+                                                aida$`Number.of.employeesYear.-.2`,
+                                                aida$Number.of.employeesLast.avail..yr)
+
+aida <- aida[!is.na(aida$Number.of.employeesLast.avail..yr),]
+#50946 remaining NA
+summary(aida$Number.of.employeesLast.avail..yr)
+
+
+```
 
 
 
 
+
+Solvency ratio
+```{r}
+summary(aida$`Solvency.ratio.(%)%Last.avail..yr`)
+
+# Deleting missing values
+solvency.df <- aida
+
+b<- nrow(solvency.df)
+solvency.df <- solvency.df[!is.na(solvency.df$`Solvency.ratio.(%)%Last.avail..yr`),]
+solvency.df <- solvency.df[!is.na(solvency.df$`Solvency.ratio.(%)%Year.-.1`),]
+solvency.df <- solvency.df[!is.na(solvency.df$`Solvency.ratio.(%)%Year.-.2`),]
+a <- nrow(size.df)
+ratio <- a*100/b
+
+# Add attribute avg.size which rappresents the average size of the last three years.
+solvency.df$avg.solvency <- round((solvency.df$`Solvency.ratio.(%)%Last.avail..yr`
+                              + solvency.df$`Solvency.ratio.(%)%Year.-.1` + solvency.df$`Solvency.ratio.(%)%Year.-.2`)/3)
+
+summary(solvency.df$avg.solvency)
+```
+Distribution of solvency ratio
+```{r}
+plot(hist(solvency.df$avg.solvency))
+```
+Distribution of solvency ratio by Legal Status
+```{r}
+d1 = density(solvency.df$avg.solvency[solvency.df$Failed=='No'], plot = FALSE)
+d2 = density(solvency.df$avg.solvency[solvency.df$Failed=='Yes'], plot = FALSE)
+plot(d1, col = "red", main="Distribution of solvency ratio by Legal status")
+lines(d2, col = 'green')
+legend("topright", c("Failed","Active"), lty=c(1,1), col = c("red","green"))
+```
 istat.sectors <- list('01' = 'A', '02' = 'A', '03' = 'A', '05' = 'B', '06' = 'B', '07' = 'B', '08' = 'B', '09' = 'B', '10' = 'C', '11' = 'C', '12' = 'C', '13' = 'C', '14' = 'C', '15' = 'C', '16' = 'C', '17' = 'C', '18' = 'C', '19' = 'C', '20' = 'C', '21' = 'C', '22' = 'C', '23' = 'C', '24' = 'C', '25' = 'C', '26' = 'C', '27' = 'C', '28' = 'C', '29' = 'C', '30' = 'C', '31' = 'C', '32' = 'C', '33' = 'C', '35' = 'D', '36' = 'E', '37' = 'E', '38' = 'E', '39' = 'E', '41' = 'F', '42' = 'F', '43' = 'F', '45' = 'G', '46' = 'G', '47' = 'G', '49' = 'H', '50' = 'H', '51' = 'H', '52' = 'H', '53' = 'H', '55' = 'I', '56' = 'I', '58' = 'J', '59' = 'J', '60' = 'J', '61' = 'J', '62' = 'J', '63' = 'J', '64' = 'K', '65' = 'K', '66' = 'K', '68' = 'L', '69' = 'M', '70' = 'M', '71' = 'M', '72' = 'M', '73' = 'M', '74' = 'M', '75' = 'M', '77' = 'N', '78' = 'N', '79' = 'N', '80' = 'N', '81' = 'N', '82' = 'N', '84' = 'O', '85' = 'P', '86' = 'Q', '87' = 'Q', '88' = 'Q', '90' = 'R', '91' = 'R', '92' = 'R', '93' = 'R', '94' = 'S', '95' = 'S', '96' = 'S', '97' = 'T', '98' = 'T', '99' = 'U', '00' = 'no_sec')
 
 
