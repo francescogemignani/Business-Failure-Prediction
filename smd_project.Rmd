@@ -1,0 +1,268 @@
+---
+title: "Risk of Business Failure"
+students: F.Gemignani, S.Cucchi, F.Falleni
+output: html_notebook
+---
+
+Libraries
+```{r}
+# install.packages("sjmisc")
+# devtools::install_github("ropensci/skimr")
+
+library(skimr)   # advenced summary
+library(ggplot2) # ggplot2 graph
+library(plyr)
+library(hrbrthemes)
+```
+
+Setup & Aida dataset import
+```{r}
+# clean all
+rm(list=ls())
+
+# working dir
+wdir = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
+setwd(wdir)
+
+# import aida dataset
+load(file="../aida.RData")
+
+# For each attribute name, replace all white space whit dot symbol
+colnames(aida) <- gsub(" ",".",colnames(aida))
+
+```
+
+Summary
+```{r}
+skim(aida)
+```
+
+
+Aggiungo la variabile 'failed' al dataframe, la quale indica se un'azienda è fallita (Yes = no active) o no (No = active). Abbiamo deciso che un'azienda si 
+definisce 'failed' se e solo se non è attiva, indipendentemente dalla causa. Lo stato di una azienda attiva è specificato nel testo del problema oppure
+visibile dai seguenti istogrammi.
+```{r}
+# Non esistono valori nulli
+aida[is.na(aida$Legal.status),]
+
+# Tabella dei contenuti
+table(aida$Legal.status)
+
+# make the operator
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+# add new empty column
+aida$failed <- NULL
+
+# for each 'Legal status' which contains 'Active' substring fill in new column 'No' else 'Yes'
+act_vector <- c('Active','Active (default of payments)','Active (receivership)')
+aida[aida$Legal.status %in% act_vector,'Failed'] <- 'No'
+aida[aida$Legal.status %!in% act_vector,'Failed'] <- 'Yes'
+```
+
+
+Legal Status Histogram
+```{r}
+table(aida$Legal.status)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=Legal.status, fill=Legal.status)) +
+  geom_bar() +
+  scale_fill_hue(c = 40) +
+  theme(legend.position="none") + 
+  coord_flip()
+
+```
+
+Failed/Not Failed Company Histogram
+```{r}
+table(aida$Failed)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=Failed, fill=Legal.status)) +
+  geom_bar() +
+  scale_fill_hue(c = 90) 
+
+```
+
+
+
+
+Add a column with the respective ISTAT sector of the company. In particular first two digits of ATECO 2007code identify the company sector. 
+```{r}
+#Delete record with ADECO code null (18327)
+aida <- aida[!is.na(aida$ATECO.2007code),]
+
+# Add the attribute 'ATECO.Sector.Code' which contain the characters of the sector identified
+# by the first two ATECO 2007 code digits.
+aida$ATECO.Sector.Code <- NULL
+aida$ATECO.Sector.Code <- substr(aida$ATECO.2007code, 0, 2)
+
+# Make a dataframe called istat.sectors.map, which contains two features:
+# - ATECO.Sector.Code: first two digits of 'ATECO 2007code'
+# - ATECO.Sector.Name: the respective sector name of that ATECO.Sector.Code
+#  Istat sectors can be found in https://www.istat.it/it/archivio/17888
+
+ATECO.Sector.Code <- c('01', '02', '03', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '35', '36', '37', '38', '39', '41', '42', '43', '45', '46', '47', '49', '50', '51', '52', '53', '55', '56', '58', '59', '60', '61', '62', '63', '64', '65', '66', '68', '69', '70', '71', '72', '73', '74', '75', '77', '78', '79', '80', '81', '82', '84', '85', '86', '87', '88', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '00')
+
+ATECO.Sector.Name <- c('A', 'A', 'A', 'B', 'B', 'B', 'B', 'B', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'D', 'E', 'E', 'E', 'E', 'F', 'F', 'F', 'G', 'G', 'G', 'H', 'H', 'H', 'H', 'H', 'I', 'I', 'J', 'J', 'J', 'J', 'J', 'J', 'K', 'K', 'K', 'L', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'N', 'N', 'N', 'N', 'N', 'N', 'O', 'P', 'Q', 'Q', 'Q', 'R', 'R', 'R', 'R', 'S', 'S', 'S', 'T', 'T','U', 'no_sec')
+
+istat.sectors.map <- data.frame(ATECO.Sector.Code=ATECO.Sector.Code, ATECO.Sector.Name=ATECO.Sector.Name)
+
+# Merge istat.sectors.map with aida dataframe, by ATECO.Sector.Code key
+aida <- merge(aida,istat.sectors.map,by="ATECO.Sector.Code")
+
+# Delete ATECO.Sector.Code feature, because we already have the secor name.
+aida$ATECO.Sector.Code <- NULL
+
+# Cast ATECO.Sector.Name as Factor
+aida$ATECO.Sector.Name <- as.factor(aida$ATECO.Sector.Name)
+
+# Description of ISTAT sectors
+# https://www.istat.it/it/archivio/17888
+# http://www.fr.camcom.gov.it/sites/default/files/cciaa/RinnovoConsiglio/ateco-2007-struttura.pdf
+```
+
+
+#save(aida, file="/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/aida_check.RData") 
+#aida <- load("/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/aida_check.RData") 
+
+
+
+##########
+## AGE ###
+##########
+
+Define company age as the difference between Incorporation.year and Last.accounting.closing.date. First of all we deal these variables: missing values and anomalies.
+```{r}
+
+# Handle Incorporation.year
+# - missing values present
+# - no evident anomalies
+age.df <- aida
+summary(age.df$'Incorporation.year')
+
+# Print the median for each sector of Incorporation.year
+tapply(age.df$Incorporation.year,age.df$ATECO.Sector.Name,median, na.rm=TRUE)
+
+# For each ATECO.Sector.Name group replace the 'Incorporation year' nan value with the respective median.
+# In this way the result is more accurate than computing the median on entire Incorporation.year values.
+compute.median <- function(x) replace(x, is.na(x), median(x, na.rm = TRUE))
+age.df <- ddply(age.df,~ATECO.Sector.Name,transform, Incorporation.year = compute.median(`Incorporation.year`))
+
+
+# Handle Last.accounting.closing.date: 
+# no missing values and evident anomalies
+summary(age.df$Last.accounting.closing.date)
+```
+
+Compute 'Age' attribute.
+```{r}
+# Make 'Age' attribute
+age.df$Age <- age.df$Last.accounting.closing.date - age.df$Incorporation.year
+age.df$Age <- as.integer(age.df$Age)
+
+# There are some company with negative age, with Incorporation year greater then Last accounting closing date. We suppose that are digit error. Therefore we remove all that records
+summary(age.df$Age)
+head(age.df[age.df$Age < 0,c('Age','Last.accounting.closing.date','Incorporation.year')])
+
+# Remove negative ages
+age.df <- age.df[age.df$Age >= 0,]
+```
+
+
+Age Histogram
+```{r}
+ggplot(data = age.df) + 
+  geom_histogram(mapping=aes(x=Age, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
+    scale_fill_manual(values=c("#69b3a2", "#404080"))+
+    theme_ipsum() +
+    labs(fill='Failed')
+```
+
+ROI
+```{r}
+
+# Reduce the aida dataset from all that companies which report ROI of all last three years. Obviously all 
+# missing values are been deleted. The dataset is composed by 386.629 companies (20.61%)
+roi.df <- aida
+colnames(roi.df)[65:67] <- c('ROI.last.avail','ROI.one.year.ago','ROI.two.years.ago')
+
+b<- nrow(roi.df)
+roi.df <- roi.df[!is.na(roi.df$ROI.last.avail),]
+roi.df <- roi.df[!is.na(roi.df$ROI.one.year.ago),]
+roi.df <- roi.df[!is.na(roi.df$ROI.two.years.ago),]
+a <- nrow(roi.df)
+ratio <- a*100/b
+
+# Add attribute avg.roi which rappresents the average ROI of the last three years.
+roi.df$avg.roi <- (roi.df$ROI.last.avail + roi.df$ROI.one.year.ago + roi.df$ROI.two.years.ago)/3
+
+summary(roi.df$avg.roi)
+
+```
+
+Average Return On Investments Histogram 
+```{r}
+ggplot(data = roi.df) + 
+  geom_histogram(mapping=aes(x=avg.roi, fill=Failed),binwidth = 1,color="#e9ecef", alpha=0.6, position = 'identity') +
+    scale_fill_manual(values=c("#69b3a2", "#404080"))+
+    theme_ipsum() +
+    labs(fill='Failed')
+```
+
+
+
+
+istat.sectors <- list('01' = 'A', '02' = 'A', '03' = 'A', '05' = 'B', '06' = 'B', '07' = 'B', '08' = 'B', '09' = 'B', '10' = 'C', '11' = 'C', '12' = 'C', '13' = 'C', '14' = 'C', '15' = 'C', '16' = 'C', '17' = 'C', '18' = 'C', '19' = 'C', '20' = 'C', '21' = 'C', '22' = 'C', '23' = 'C', '24' = 'C', '25' = 'C', '26' = 'C', '27' = 'C', '28' = 'C', '29' = 'C', '30' = 'C', '31' = 'C', '32' = 'C', '33' = 'C', '35' = 'D', '36' = 'E', '37' = 'E', '38' = 'E', '39' = 'E', '41' = 'F', '42' = 'F', '43' = 'F', '45' = 'G', '46' = 'G', '47' = 'G', '49' = 'H', '50' = 'H', '51' = 'H', '52' = 'H', '53' = 'H', '55' = 'I', '56' = 'I', '58' = 'J', '59' = 'J', '60' = 'J', '61' = 'J', '62' = 'J', '63' = 'J', '64' = 'K', '65' = 'K', '66' = 'K', '68' = 'L', '69' = 'M', '70' = 'M', '71' = 'M', '72' = 'M', '73' = 'M', '74' = 'M', '75' = 'M', '77' = 'N', '78' = 'N', '79' = 'N', '80' = 'N', '81' = 'N', '82' = 'N', '84' = 'O', '85' = 'P', '86' = 'Q', '87' = 'Q', '88' = 'Q', '90' = 'R', '91' = 'R', '92' = 'R', '93' = 'R', '94' = 'S', '95' = 'S', '96' = 'S', '97' = 'T', '98' = 'T', '99' = 'U', '00' = 'no_sec')
+
+
+
+
+TODO
+1. Codici ATECO classificazione per sezioni. DOC (elimino mv)
+2. definizione di age
+2. definizione di size
+3. feature reduction
+  - attributi con oltre il 50% di valori mancanti
+  - elimino record quando
+  - sostituisco quando
+
+
+1.059291e+03
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+apici accentati in ggplot2
+creare nuova colonna Bankrupted...come vedo se una substring è contenuta in un altra e creo una nuova colonna
+descrizione degli attributi
+ha senso definire age come differenza tra incorporporation year e last accounting rate?
+incorporation year ha 691 mv. Elimino o sostituisco con median? 
+
+TO DO & NOTES
+-------------
+
+1. Nella prima question ci interessano gli attributi age/size e Bankrupte (tutte da creare).
+   Di conseguenza nn avendo bisogno degli altri attributi nn avrebbe senso al momento eliminare i record in quanto potrei perdere in
+   
+mean(aida$'Incorporation year', na.rm=TRUE)
+
+0. numero di aziende attive e 
+1. definizione di age
+2. definizione di size
+3. feature reduction
+  - attributi con oltre il 50% di valori mancanti
+  - elimino record quando
+  - sostituisco quando
+
+
