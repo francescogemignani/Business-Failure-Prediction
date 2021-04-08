@@ -26,7 +26,7 @@ rm(list=ls())
 # working dir
 wdir_fg = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
 #wdir_ff = "C:/Users/falle/OneDrive - University of Pisa/Data Science/Statistical Methods for Data Science/smdproject2021"
-#wdir_sc
+#wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
 setwd(wdir_fg)
 
 # import aida dataset
