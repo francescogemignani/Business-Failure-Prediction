@@ -26,11 +26,12 @@ rm(list=ls())
 # working dir
 wdir_fg = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
 #wdir_ff = "C:/Users/falle/OneDrive - University of Pisa/Data Science/Statistical Methods for Data Science/smdproject2021"
-#wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
-setwd(wdir_fg)
+wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
+setwd(wdir_sc)
 
 # import aida dataset
-load(file="aida.RData")
+#load(file"../aida.RData")
+load(file="../aida.RData")
 
 # For each attribute name, replace all white space whit dot symbol
 colnames(aida) <- gsub(" ",".",colnames(aida))
@@ -56,12 +57,14 @@ table(aida$Legal.status)*100/nrow(aida)
 '%!in%' <- function(x,y)!('%in%'(x,y))
 
 # Add new empty column
-aida$failed <- NULL
+aida$Failed <- NULL
 
 # For each 'Legal status' which contains 'Active' substring fill in new column 'No' else 'Yes'
 act_vector <- c('Active','Active (default of payments)','Active (receivership)')
 aida[aida$Legal.status %in% act_vector,'Failed'] <- 'No'
 aida[aida$Legal.status %!in% act_vector,'Failed'] <- 'Yes'
+
+aida[is.na(aida$Failed), ]
 
 # Failed info
 table(aida$Failed)*100/nrow(aida)
