@@ -29,9 +29,6 @@ wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
 setwd(wdir_fg)
 
 # import aida dataset
-aida_fg = "../aida.RData"
-aida_sc = ""
-aida_ff = ""
 load(file="../aida.RData")
 
 # For each attribute name, replace all white space whit dot symbol
@@ -151,6 +148,8 @@ ggplot(data=aida, aes(x=fct_rev(fct_infreq(Legal.form)), fill=Legal.form)) +
   theme(legend.position="none") + 
   coord_flip()
 ```
+
+#aida[,c("ATECO.2007code","ATECO.Sector.Name","ATECO.Sector.Description","Failed")]
 
 Age
 ```{r}
