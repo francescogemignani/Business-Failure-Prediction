@@ -14,7 +14,6 @@ library(ggplot2)
 library(hrbrthemes)   
 library(forcats)      
 library(plyr)        
-library(plugdensity)  
 ```
 
 Import & Setup AIDA dataset
@@ -63,30 +62,13 @@ aida[aida$Legal.status %in% act_vector,'Failed'] <- 'No'
 aida[aida$Legal.status %!in% act_vector,'Failed'] <- 'Yes'
 
 aida[is.na(aida$Failed), ]
+aida$Failed <- as.factor(aida$Failed)
 
 # Failed info
 table(aida$Failed)*100/nrow(aida)
 ```
 
-Legal Status by Failed
-```{r}
-table(aida$Failed)*100/nrow(aida)
-
-ggplot(data=aida, aes(x=Failed, fill=Legal.status)) +
-  geom_bar() +
-  scale_fill_hue(c = 90) 
-```
-
-Legal Form by Failed
-```{r}
-table(aida$Failed)*100/nrow(aida)
-
-ggplot(data=aida, aes(x=Failed, fill=Legal.form)) +
-  geom_bar() +
-  scale_fill_hue(c = 90) 
-```
-
-ATECO Sectors
+ATECO.Sector.Name
 ```{r}
 # Add a column with the respective ISTAT sector of the company. In particular first two digits of ATECO 2007code identify the company sector which is an upper case character that began to [A-U] alphabetical range.
 
@@ -124,11 +106,32 @@ aida$ATECO.Sector.Name <- as.factor(aida$ATECO.Sector.Name)
 # http://www.fr.camcom.gov.it/sites/default/files/cciaa/RinnovoConsiglio/ateco-2007-struttura.pdf
 ```
 
+Legal Form
+```{r}
+# Remove missing values
+aida <- aida[!is.na(aida$Legal.form),]
+```
+
+Legal Status by Failed
+```{r}
+table(aida$Failed)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=Failed, fill=Legal.status)) +
+  geom_bar() +
+  scale_fill_hue(c = 90) 
+```
+
+Legal Form by Failed
+```{r}
+table(aida$Failed)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=Failed, fill=Legal.form)) +
+  geom_bar() +
+  scale_fill_hue(c = 90) 
+```
+
 Legal Status Bar Plot
 ```{r}
-#Remove Missing Values
-aida <- aida[!is.na(aida$Legal.form),]
-
 table(aida$Legal.status)*100/nrow(aida)
 
 ggplot(data=aida, aes(x=fct_rev(fct_infreq(Legal.status)), fill=Legal.status)) +
@@ -149,8 +152,6 @@ ggplot(data=aida, aes(x=fct_rev(fct_infreq(Legal.form)), fill=Legal.form)) +
   coord_flip()
 ```
 
-#aida[,c("ATECO.2007code","ATECO.Sector.Name","ATECO.Sector.Description","Failed")]
-
 Age
 ```{r}
 # The company age is defined as as the difference between Incorporation.year and Last.accounting.closing.date
@@ -161,6 +162,7 @@ summary(age.df$Incorporation.year)
 
 # Handle Last.accounting.closing.date:  no missing values
 summary(age.df$Last.accounting.closing.date)
+table(age.df$Last.accounting.closing.date)
 
 # Print the median for each sector of Incorporation.year
 tapply(age.df$Incorporation.year,age.df$ATECO.Sector.Name,median, na.rm=TRUE)
@@ -195,13 +197,11 @@ table(outliers)
 
 boxplot(age.df$Age)
 # We decided to don't remove outliers because are not error/noise but companies with higher age. The boxplot shows that the age between the median and the maximum age is sparse.
-```
-```{r}
-ggplot(data = age.df) + 
-  geom_histogram(mapping=aes(x=Age, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
-    scale_fill_manual(values=c("#69b3a2", "#404080"))+
-    theme_ipsum() +
-    labs(fill='Failed')
+
+# export age.df 
+age.df <- age.df[,c('Age','Legal.form','ATECO.Sector.Name','Registered.office.address...Region','Last.accounting.closing.date','Failed')]
+skim(age.df)
+save(age.df, file="../age_df.RData") # R binary format
 ```
 
 Size
@@ -213,7 +213,6 @@ size.df <- aida
 size.df <- size.df[!is.na(size.df$Total.assetsth.EURLast.avail..yr),]
 summary(size.df$Total.assetsth.EURLast.avail..yr)
 ```
-
 ```{r}
 # Anomaly detection
 
@@ -234,16 +233,11 @@ size.df <- size.df[size.df$Total.assetsth.EURLast.avail..yr >= lower.whisker & s
 #After outliers detection
 boxplot(size.df$Total.assetsth.EURLast.avail..yr)
 plot(density(size.df$Total.assetsth.EURLast.avail..yr))
-```
-```{r}
-# ggplot2 size plots
 
-ggplot( data=size.df, aes(x=Total.assetsth.EURLast.avail..yr) ) +
-    geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)
-
-ggplot(data=size.df, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, fill=Failed)) +
-    geom_density(adjust=1.5, alpha=.4) +
-    theme_ipsum()
+# export age.df 
+size.df <- size.df[,c('Total.assetsth.EURLast.avail..yr','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
+skim(size.df)
+save(size.df, file="../size_df.RData") # R binary format
 ```
 
 ROI: Return on Investments
@@ -277,13 +271,11 @@ outliers <- roi.df[roi.df$avg.roi < lower.whisker | roi.df$avg.roi > upper.whisk
 boxplot(roi.df$avg.roi)
 
 # The outliers are companies with the higher and lower roi. We don't remove these record because the roi dataset composed only from 20.61% of record and could be usefull.
-```
-```{r}
-ggplot(data = roi.df) + 
-  geom_histogram(mapping=aes(x=avg.roi, fill=Failed),binwidth = 1,color="#e9ecef", alpha=0.6, position = 'identity') +
-    scale_fill_manual(values=c("#69b3a2", "#404080"))+
-    theme_ipsum() +
-    labs(fill='Failed')
+
+# export age.df 
+roi.df <- roi.df[,c('avg.roi','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
+skim(roi.df)
+save(roi.df, file="../roi_df.RData") # R binary format
 ```
 
 
@@ -320,39 +312,13 @@ outliers <- solvency.df[solvency.df$avg.solvency < lower.whisker | solvency.df$a
 boxplot(solvency.df$avg.solvency)
 
 # The avg.solvency distribution is well balanced and doesn't show any anomaly
-```
-```{r}
-ggplot(data = solvency.df) + 
-  geom_histogram(mapping=aes(x=avg.solvency, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
-    scale_fill_manual(values=c("#69b3a2", "#404080"))+
-    theme_ipsum() +
-    labs(fill='Failed')
+
+# export age.df 
+solvency.df <- solvency.df[,c('avg.solvency','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
+skim(solvency.df)
+save(solvency.df, file="../solvency_df.RData") # R binary format
 ```
 
 
 
-QUESTION A
-Compare the distributions of size/age/other between failed and active companies at a specific year?
 
-1.Abbiamo definito age, size°, roi° e solvency.ratio°.     ° = media sui 3 anni precedenti
-  - Quali e quante variabili dobbiamo confrontare nella domanda A? 
-  - Cosa intende per specific year? Devo filtrare un anno specifico quindi ridimensionare il dataset?
-
-2. siamo in grado di rispondere alla domanda A nello stato in cui ci troviamo adesso?
-  - Posso utilizzare ad esempio un approccio non parametrico come la KDE appena vista a lezione per rispondere alle domande?
-  - fhat = kde.boundary(x=age,xmin=0, xmax=118,boundary.kernel="beta") su age non termina più...
-  - se uso density(age) mi restituisce cmq una boundary kde? il bandwitch sceglie quello ottimale?
-
-3. Se metto la densità (freq = False) la somma delle densità torna sempre un valore diverso 
-hist(age.df$Age,freq=FALSE,breaks=1)   #la somma della densità ritorna 1
-hist(age.df$Age,freq=FALSE,breaks=120) #la somma della densità ritorna 100
-hist(age.df$Age,freq=FALSE,breaks=11,ylim=c(0.0,1.0)) #la somma della densità ritorna 0.1
-hist(age.df$Age,freq=FALSE,breaks="Sturges") #la somma della densità ritorna ?
-
-
-4. la anomaly dectection vista a lezione (IQR range) mi permette di trovare/eliminare gli outliers all'esterno degli intervalli <Q1-1.5*IQR e >Q3+1.5 IQR. E' necessario determinare le anomalie per rispondere alle domande A e B o è più utile eliminarle solo quando facciamo la regressione (sensibile agli outliers)?
-Perchè dopo aver eliminato le anomalie all esterno dei whiskers se rieseguo il boxplot sulla nuova variabile si ripresentano ancora anomalie?
-
-5. stesso discorso feature reduction. Non ha senso per le domande a e b, in tali casi eseguo il preprocess solo degli attributi che sto considerando. Ha senso farla solo nel caso della regressione nel nostro caso?
-
-6. istogrammii e grafi preferisce con ggplot2 o con le funzioni (hist,barplot,lines...) viste a lezione? I grafici con ggplot2 sono belli ma non mi permettono ad esempio di avere il pieno controllo...esempio bandwitch, binsize ecc...
