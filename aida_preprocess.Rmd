@@ -278,7 +278,6 @@ skim(roi.df)
 save(roi.df, file="../roi_df.RData") # R binary format
 ```
 
-
 Solvency Ratio
 ```{r}
 summary(aida$`Solvency.ratio.(%)%Last.avail..yr`)

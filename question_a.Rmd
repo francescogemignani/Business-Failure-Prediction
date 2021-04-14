@@ -129,29 +129,3 @@ ggplot(data = solvency.df) +
 ```
 
 
-
-QUESTION A
-Compare the distributions of size/age/other between failed and active companies at a specific year?
-
-1.Abbiamo definito age, size°, roi° e solvency.ratio°.     ° = media sui 3 anni precedenti
-  - Quali e quante variabili dobbiamo confrontare nella domanda A? 
-  - Cosa intende per specific year? Devo filtrare un anno specifico quindi ridimensionare il dataset?
-
-2. siamo in grado di rispondere alla domanda A nello stato in cui ci troviamo adesso?
-  - Posso utilizzare ad esempio un approccio non parametrico come la KDE appena vista a lezione per rispondere alle domande?
-  - fhat = kde.boundary(x=age,xmin=0, xmax=118,boundary.kernel="beta") su age non termina più...
-  - se uso density(age) mi restituisce cmq una boundary kde? il bandwitch sceglie quello ottimale?
-
-3. Se metto la densità (freq = False) la somma delle densità torna sempre un valore diverso 
-hist(age.df$Age,freq=FALSE,breaks=1)   #la somma della densità ritorna 1
-hist(age.df$Age,freq=FALSE,breaks=120) #la somma della densità ritorna 100
-hist(age.df$Age,freq=FALSE,breaks=11,ylim=c(0.0,1.0)) #la somma della densità ritorna 0.1
-hist(age.df$Age,freq=FALSE,breaks="Sturges") #la somma della densità ritorna ?
-
-
-4. la anomaly dectection vista a lezione (IQR range) mi permette di trovare/eliminare gli outliers all'esterno degli intervalli <Q1-1.5*IQR e >Q3+1.5 IQR. E' necessario determinare le anomalie per rispondere alle domande A e B o è più utile eliminarle solo quando facciamo la regressione (sensibile agli outliers)?
-Perchè dopo aver eliminato le anomalie all esterno dei whiskers se rieseguo il boxplot sulla nuova variabile si ripresentano ancora anomalie?
-
-5. stesso discorso feature reduction. Non ha senso per le domande a e b, in tali casi eseguo il preprocess solo degli attributi che sto considerando. Ha senso farla solo nel caso della regressione nel nostro caso?
-
-6. istogrammii e grafi preferisce con ggplot2 o con le funzioni (hist,barplot,lines...) viste a lezione? I grafici con ggplot2 sono belli ma non mi permettono ad esempio di avere il pieno controllo...esempio bandwitch, binsize ecc...
