@@ -201,7 +201,7 @@ boxplot(age.df$Age)
 # export age.df 
 age.df <- age.df[,c('Age','Legal.form','ATECO.Sector.Name','Registered.office.address...Region','Last.accounting.closing.date','Failed')]
 skim(age.df)
-save(age.df, file="../age_df.RData") # R binary format
+save(age.df, file="./dataset/age_df.RData") # R binary format
 ```
 
 Size
@@ -237,7 +237,7 @@ plot(density(size.df$Total.assetsth.EURLast.avail..yr))
 # export age.df 
 size.df <- size.df[,c('Total.assetsth.EURLast.avail..yr','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
 skim(size.df)
-save(size.df, file="../size_df.RData") # R binary format
+save(size.df, file="./dataset/size_df.RData") # R binary format
 ```
 
 ROI: Return on Investments
@@ -275,7 +275,7 @@ boxplot(roi.df$avg.roi)
 # export age.df 
 roi.df <- roi.df[,c('avg.roi','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
 skim(roi.df)
-save(roi.df, file="../roi_df.RData") # R binary format
+save(roi.df, file="./dataset/roi_df.RData") # R binary format
 ```
 
 Solvency Ratio
@@ -315,7 +315,7 @@ boxplot(solvency.df$avg.solvency)
 # export age.df 
 solvency.df <- solvency.df[,c('avg.solvency','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
 skim(solvency.df)
-save(solvency.df, file="../solvency_df.RData") # R binary format
+save(solvency.df, file="./dataset/solvency_df.RData") # R binary format
 ```
 
 

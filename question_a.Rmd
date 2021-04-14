@@ -28,7 +28,7 @@ setwd(wdir_fg)
 Import & Summary
 ```{r}
 # import aida dataset
-load("../age_df.RData") # reload energy dataset
+load("./dataset/age_df.RData") # reload energy dataset
 
 #summary
 skim(age.df)
@@ -53,7 +53,7 @@ ggplot(data = age.df) +
 Import & Summary
 ```{r}
 # import aida dataset
-load("../size_df.RData") # reload energy dataset
+load("./dataset/size_df.RData") # reload energy dataset
 
 #summary
 skim(size.df)
@@ -82,7 +82,7 @@ ggplot(data=size.df, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, fill=
 Import & Summary
 ```{r}
 # import aida dataset
-load("../roi_df.RData") # reload energy dataset
+load("./dataset/roi_df.RData") # reload energy dataset
 
 #summary
 skim(roi.df)
@@ -110,7 +110,7 @@ ggplot(data = roi.df) +
 Import & Summary
 ```{r}
 # import aida dataset
-load("../solvency_df.RData") # reload energy dataset
+load("./dataset/solvency_df.RData") # reload energy dataset
 
 #summary
 skim(solvency.df)
