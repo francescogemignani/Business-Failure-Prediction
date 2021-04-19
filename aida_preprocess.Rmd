@@ -242,38 +242,33 @@ save(size.df, file="./dataset/size_df.RData") # R binary format
 
 ROI: Return on Investments
 ```{r}
-# Reduce the aida dataset from all that companies which report ROI of all last three years. Obviously all missing values are been deleted. The dataset is composed by 386.629 companies (20.61%)
+# Take all that companies which report ROI of last available year. Obviously all missing values are been deleted. The dataset is composed by 735.268 companies (39.20%)
 roi.df <- aida
-colnames(roi.df)[65:67] <- c('ROI.last.avail','ROI.one.year.ago','ROI.two.years.ago')
 
 b<- nrow(roi.df)
-roi.df <- roi.df[!is.na(roi.df$ROI.last.avail),]
-roi.df <- roi.df[!is.na(roi.df$ROI.one.year.ago),]
-roi.df <- roi.df[!is.na(roi.df$ROI.two.years.ago),]
+roi.df <- roi.df[!is.na(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr'),]
 a <- nrow(roi.df)
 ratio <- a*100/b
 
-# Add attribute avg.roi which rappresents the average ROI of the last three years.
-roi.df$avg.roi <- (roi.df$ROI.last.avail + roi.df$ROI.one.year.ago + roi.df$ROI.two.years.ago)/3
-
-summary(roi.df$avg.roi)
+summary(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr')
 ```
 ```{r}
 # ROI Anomaly Detection: iqr range approach
-iqr <- IQR(roi.df$avg.roi)
-q1 <- quantile(roi.df$avg.roi,0.25)
-q3 <- quantile(roi.df$avg.roi,0.75)
+iqr <- IQR(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr')
+q1 <- quantile(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr',0.25)
+q3 <- quantile(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr',0.75)
 lower.whisker <- q1 - 1.5*iqr
 upper.whisker <- q3 + 1.5*iqr
 
-outliers <- roi.df[roi.df$avg.roi < lower.whisker | roi.df$avg.roi > upper.whisker,c('avg.roi')]
+outliers <- roi.df[roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr' < lower.whisker | 
+                     roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr' > upper.whisker,c('Return.on.investment.(ROI).(%)%Last.avail..yr')]
 #table(outliers)
-boxplot(roi.df$avg.roi)
+boxplot(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr')
 
 # The outliers are companies with the higher and lower roi. We don't remove these record because the roi dataset composed only from 20.61% of record and could be usefull.
 
 # export age.df 
-roi.df <- roi.df[,c('avg.roi','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
+roi.df <- roi.df[,c('Return.on.investment.(ROI).(%)%Last.avail..yr','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
 skim(roi.df)
 save(roi.df, file="./dataset/roi_df.RData") # R binary format
 ```

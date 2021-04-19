@@ -21,9 +21,15 @@ setwd(wdir_fg)
 ```
 
 
-#####
-#Age#
-#####
+*###### QUESTION A ######*
+*A.  Compare the distributions of size/age/other between failed and active companies at a specific year*
+*A.1 Does it change for a specific company form (i.e. SPA,SRL,etc)?*
+*A.2 Does it change for a specific industry sector (see ATECO sectors)?*
+
+
+#########################
+###########AGE###########
+#########################
 
 Import & Summary
 ```{r}
@@ -36,14 +42,105 @@ skim(age.df)
 #dataset
 head(age.df)
 ```
-Histogram
+
+Filter all companies for a specific year
 ```{r}
-ggplot(data = age.df) + 
+# We selected 2018 as year because has the highest frequency
+table(age.df$Last.accounting.closing.date)
+
+age.df.2018 <- age.df[age.df$Last.accounting.closing.date == 2018,]
+
+skim(age.df.2018)
+```
+
+Some plots in Year 2018
+```{r}
+# histogram of age between failed and active companies at year 2018
+ggplot(data = age.df.2018) + 
   geom_histogram(mapping=aes(x=Age, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
     scale_fill_manual(values=c("#69b3a2", "#404080"))+
     theme_ipsum() +
-    labs(fill='Failed')
+    labs(fill='Failed') + 
+    ggtitle("Histogram of Company ages in 2018")
+
+# density of age between failed and active companies at year 2018
+ggplot(data=age.df.2018, aes(x=Age, group=Failed, fill=Failed)) +
+    geom_density(adjust=1.5, alpha=.4) +
+    theme_ipsum() + 
+    ggtitle("Density of Company ages in 2018")
+
+# bar chart of legal form of companies at year 2018
+ggplot(data=age.df.2018, aes(x=fct_rev(fct_infreq(Legal.form)), fill=Legal.form)) +
+  geom_bar() +
+  scale_fill_hue(c = 40) +
+  theme(legend.position="none") + 
+  coord_flip() + 
+  ggtitle("Bar Plot of Company forms in 2018")
+
 ```
+
+*A. Compare the distributions of age between failed and active companies at a specific year (2018)*
+```{r}
+age.2018.active <- age.df.2018[age.df.2018$Failed=='No','Age']
+age.2018.failed <- age.df.2018[age.df.2018$Failed=='Yes','Age']
+
+# Voglio sapere se la media dei valori del primo parametro è uguale alla media dei valori del secondo parametro
+t.test(age.2018.active,age.2018.failed)
+
+# Voglio sapere se la media dei valori del primo parametro è minore della media dei valori del secondo parametro
+t.test(age.2018.active,age.2018.failed,alternative = 'less')
+
+# Voglio sapere se la media dei valori del primo parametro è maggiore della media dei valori del secondo parametro
+t.test(age.2018.active,age.2018.failed,alternative = 'greater')
+
+# Remove data from stack
+rm(age.2018.active,age.2018.failed)
+
+# RISULTATO
+# Il p-value dell'ipotesi nulla non è significativo perchè è molto basso. Di conseguenza scarto l'ipotesi nulle e considero solo quelle bilaterali, in particolare
+# l'ipotesi bilateriale superiore. In tal caso il p-value è pari a 1, e questo ci porta ad accettare l'ipotesi bilaterale superiore, ovvero che la media dell'età
+# dell'età delle aziende attive è superiore alla media delle età delle aziende fallite (nel 2018).  
+# Quindi nel 2018 le aziende attive sono più vecchie di quelle fallite
+```
+
+*A.1 Does Age change for a specific company form (i.e. SPA,SRL,etc)?*
+```{r}
+# List of unique legal form values
+company.forms <- unique(age.df.2018$Legal.form)
+
+for(form.name in company.forms){
+  age.2018.active <- age.df.2018[age.df.2018$Failed=='No' & age.df.2018$Legal.form==form.name ,'Age']
+  age.2018.failed <- age.df.2018[age.df.2018$Failed=='Yes'& age.df.2018$Legal.form==form.name ,'Age']
+  
+  # Voglio sapere se la media dei valori del primo parametro è uguale alla media dei valori del secondo parametro
+  t.test(age.2018.active,age.2018.failed)
+  
+  # Voglio sapere se la media dei valori del primo parametro è minore della media dei valori del secondo parametro
+  t.test(age.2018.active,age.2018.failed,alternative = 'less')
+  
+  # Voglio sapere se la media dei valori del primo parametro è maggiore della media dei valori del secondo parametro
+  t.test(age.2018.active,age.2018.failed,alternative = 'greater')
+  
+  # Remove data from stack
+  rm(age.2018.active,age.2018.failed)
+}
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
 
 
 ######
@@ -94,7 +191,7 @@ head(roi.df)
 ROI Histogram
 ```{r}
 ggplot(data = roi.df) + 
-  geom_histogram(mapping=aes(x=avg.roi, fill=Failed),binwidth = 1,color="#e9ecef", alpha=0.6, position = 'identity') +
+  geom_histogram(mapping=aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, fill=Failed),binwidth = 1,color="#e9ecef", alpha=0.6, position = 'identity') +
     scale_fill_manual(values=c("#69b3a2", "#404080"))+
     theme_ipsum() +
     labs(fill='Failed')
@@ -128,4 +225,10 @@ ggplot(data = solvency.df) +
     labs(fill='Failed')
 ```
 
+
+
+*###### QUESTION A CTD ######*
+*Compare the distributions of size/age/other of failed companies over time*
+*Does it change for a specific company form (i.e. SPA,SRL,etc)?*
+*Does it change for a specific location (i.e. Tuscany,Lombardy,etc.)?*
 
