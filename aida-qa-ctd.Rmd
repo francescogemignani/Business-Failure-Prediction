@@ -20,20 +20,20 @@ wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
 setwd(wdir_fg)
 ```
 
-
-*########################################## QUESTION A ################################################*
-*A.  Compare the distributions of age/size/roi between failed and active companies at a specific year*
-*A.1 Does it change for a specific company form (i.e. SPA,SRL,etc)?*
-*A.2 Does it change for a specific industry sector (see ATECO sectors)?*
-*######################################################################################################*
+*########################################## QUESTION A CTD ################################################*
+*A.ctd Compare the distributions of age/size/roi of failed companies over time*
+*A.1.ctd Does it change for a specific company form (i.e. SPA,SRL,etc)?*
+*A.2.ctd Does it change for a specific location (i.e. Tuscany,Lombardy,etc.)?*
+*##########################################################################################################*
 
 *###############*
 *##### AGE #####*
 *###############*
+
 Company ages summary
 ```{r}
-# import aida dataset
-load("./dataset/age_df.RData") # reload energy dataset
+# import age dcompany ata
+load("./dataset/age_df.RData") 
 
 #summary
 skim(age.df)
@@ -42,100 +42,98 @@ skim(age.df)
 head(age.df)
 ```
 
-Filter ages of all companies for a specific year (2018)
+Filter ages of failed company for an interval of year
 ```{r}
-# We have selected year equal to 2018 to compare age because it has the highest number of samples
-table(age.df$Last.accounting.closing.date)
+# Filtering ages of all failed companies
+age.df.failed <- age.df[age.df$Failed=='Yes',]
 
-# Filtering
-age.df.2018 <- age.df[age.df$Last.accounting.closing.date == 2018,]
+# We compare the distribution of age if failed companies over two years
+table(age.df.failed$Last.accounting.closing.date)
+
+# Filtering ages of all failed companies over years
+age.df.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017 | age.df.failed$Last.accounting.closing.date == 2018 ,]
 ```
 
-Some plots of Age in Year 2018
+Density of Age of Failed Companies Over Years selected
 ```{r}
-
-##### AGE
-# histogram of age between failed and active companies at year 2018
-ggplot(data = age.df.2018) + 
-  geom_histogram(mapping=aes(x=Age, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
-    scale_fill_manual(values=c("#69b3a2", "#404080"))+
-    theme_ipsum() +
-    labs(fill='Failed') + 
-    ggtitle("Histogram of Company ages in 2018")
-
-# density of age between failed and active companies at year 2018
-ggplot(data=age.df.2018, aes(x=Age, group=Failed, fill=Failed)) +
+# density of age of failed companies over years selected
+ggplot(data=age.df.failed, aes(x=Age, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
-    ggtitle("Density of Company ages in 2018")
+    ggtitle("Density of Ages of Failed Companies Over Time")
 
 ```
 
-A. Compare the distributions of AGE between failed and active companies at a specific year (2018)
+A.ctd Compare the distributions of AGE of failed companies over selected years
 ```{r}
-age.2018.active <- age.df.2018[age.df.2018$Failed=='No','Age']
-age.2018.failed <- age.df.2018[age.df.2018$Failed=='Yes','Age']
+age.2017.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017,'Age']
+age.2018.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2018,'Age']
 
-t.test(age.2018.active,age.2018.failed)
-t.test(age.2018.active,age.2018.failed,alternative = 'less')
-t.test(age.2018.active,age.2018.failed,alternative = 'greater')
+t.test(age.2017.failed,age.2018.failed)
+t.test(age.2017.failed,age.2018.failed,alternative = 'less')
+t.test(age.2017.failed,age.2018.failed,alternative = 'greater')
 
 # Remove data from stack
-rm(age.2018.active,age.2018.failed)
+rm(age.2017.failed,age.2018.failed)
 
-# RISULTATO
-# Il p-value dell'ipotesi nulla non è significativo perchè è molto basso. Di conseguenza scarto l'ipotesi nulle e considero solo quelle bilaterali, in particolare
-# l'ipotesi bilateriale superiore. In tal caso il p-value è pari a 1, e questo ci porta ad accettare l'ipotesi bilaterale superiore, ovvero che la media dell'età
-# dell'età delle aziende attive è superiore alla media delle età delle aziende fallite (nel 2018).  
-# Quindi nel 2018 le aziende attive sono più vecchie di quelle fallite
+# RISULTATO: H0 non significative p-value molto basso. Considero l'ipotesi bilaterale maggiore con p-value = 1
+# La media dell'età delle aziende fallite nel 2017 è superiore alla media dell'età delle aziende fallite nel 2018.
+# Quindi le aziende fallite nel 2017 sono più vecchie di quelle fallite nel 2018.
 ```
 
-A.1 Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
+A.1.ctd Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(age.df.2018$Legal.form)
-table(age.df.2018$Legal.form)
+company.forms <- unique(age.df.failed$Legal.form)
+
+table(age.df.failed$Legal.form)
 
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  age.2018.active <- age.df.2018[age.df.2018$Failed=='No' & age.df.2018$Legal.form==form.name ,'Age']
-  age.2018.failed <- age.df.2018[age.df.2018$Failed=='Yes'& age.df.2018$Legal.form==form.name ,'Age']
+  age.2017.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017 & age.df.failed$Legal.form==form.name ,'Age']
+  age.2018.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2018 & age.df.failed$Legal.form==form.name ,'Age']
   
-  if( length(age.2018.active)>3 & length(age.2018.failed)>3 ){
-    print(t.test(age.2018.active,age.2018.failed))
-    print(t.test(age.2018.active,age.2018.failed,alternative = 'less'))
-    print(t.test(age.2018.active,age.2018.failed,alternative = 'greater'))
+  if( length(age.2017.failed)>3 & length(age.2018.failed)>3 ){
+    print(t.test(age.2017.failed,age.2018.failed))
+    print(t.test(age.2017.failed,age.2018.failed,alternative = 'less'))
+    print(t.test(age.2017.failed,age.2018.failed,alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
   
   # Remove data from stack
-  rm(age.2018.active,age.2018.failed)
+  rm(age.2017.failed,age.2018.failed)
 }
+
+# RISULTATI
 ```
 
-A.2 Does AGE change for a specific industry sector (see ATECO sectors)?
+A.2.ctd Does AGE change for a specific location (i.e. Tuscany,Lombardy,etc.)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(age.df.2018$ATECO.Sector.Name)
-table(age.df.2018$ATECO.Sector.Name)
+company.regions <- unique(age.df.failed$Registered.office.address...Region)
+table(age.df.failed$Registered.office.address...Region)
 
-for(form.name in company.forms){
+for(region.name in company.regions){
   print("**************************")
-  print(form.name)
-  age.2018.active <- age.df.2018[age.df.2018$Failed=='No' & age.df.2018$ATECO.Sector.Name==form.name ,'Age']
-  age.2018.failed <- age.df.2018[age.df.2018$Failed=='Yes'& age.df.2018$ATECO.Sector.Name==form.name ,'Age']
+  print(region.name)
+  age.2017.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017 & 
+                                     age.df.failed$Registered.office.address...Region==region.name ,'Age']
+  age.2018.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2018 & 
+                                     age.df.failed$Registered.office.address...Region==region.name ,'Age']
   
-  if( length(age.2018.active)>3 & length(age.2018.failed)>3 ){
-    print(t.test(age.2018.active,age.2018.failed))
-    print(t.test(age.2018.active,age.2018.failed,alternative = 'less'))
-    print(t.test(age.2018.active,age.2018.failed,alternative = 'greater'))
+  if( length(age.2017.failed)>3 & length(age.2018.failed)>3 ){
+    print(t.test(age.2017.failed,age.2018.failed))
+    print(t.test(age.2017.failed,age.2018.failed,alternative = 'less'))
+    print(t.test(age.2017.failed,age.2018.failed,alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
   
   # Remove data from stack
-  rm(age.2018.active,age.2018.failed)
+  rm(age.2017.failed,age.2018.failed)
 }
+
+# RISULTATI
 ```
 
 *################*
@@ -345,19 +343,11 @@ for(form.name in company.forms){
 DOMANDE
 1. last available e last accounting year
 2. se il p value dell'ipotesi nulla è > 0.05 allora le ipotesi bilaterali nn le considero?
+3. Differenze domande A e A.CTD. Nella A dovevo confrontare ad esempio l'età delle aziende attive con l'età delle aziende fallite NELLO STESSO ANNO
+   In questo caso devo confrontare l'età delle aziende fallite in anni diversi. Ma se posso prendere al massimo due campioni per fare il t-test devo       necessariamente prendere un intervallo di 2 anni. Quindi quell'over time si riferisce a una coppia di anni.
 
 
 
-
-*########################################## QUESTION A CTD ################################################*
-*A.  Compare the distributions of age/size/roi of failed companies over time*
-*A.1 Does it change for a specific company form (i.e. SPA,SRL,etc)?*
-*A.2 Does it change for a specific location (i.e. Tuscany,Lombardy,etc.)?*
-*##########################################################################################################*
-
-*###############*
-*##### AGE #####*
-*###############*
 
 *###############*
 *##### SIZE ####*
