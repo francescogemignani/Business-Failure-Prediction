@@ -1,5 +1,5 @@
 ---
-title: "Question A"
+title: "Question A.CTD"
 output: html_notebook
 ---
 
@@ -33,31 +33,33 @@ setwd(wdir_fg)
 Company ages summary
 ```{r}
 # import age dcompany ata
-load("./dataset/age_df.RData") 
+load("./dataset/aida.age.RData") 
 
 #summary
-skim(age.df)
+skim(aida.age)
 
 #dataset
-head(age.df)
+head(aida.age)
 ```
 
 Filter ages of failed company for an interval of year
 ```{r}
 # Filtering ages of all failed companies
-age.df.failed <- age.df[age.df$Failed=='Yes',]
+aida.age.failed <- aida.age[aida.age$Failed=='Yes',]
 
 # We compare the distribution of age if failed companies over two years
-table(age.df.failed$Last.accounting.closing.date)
+table(aida.age.failed$Last.accounting.closing.date)
 
 # Filtering ages of all failed companies over years
-age.df.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017 | age.df.failed$Last.accounting.closing.date == 2018 ,]
+aida.age.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017 | aida.age.failed$Last.accounting.closing.date == 2018 ,]
+
+rm(aida.age)
 ```
 
 Density of Age of Failed Companies Over Years selected
 ```{r}
 # density of age of failed companies over years selected
-ggplot(data=age.df.failed, aes(x=Age, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
+ggplot(data=aida.age.failed, aes(x=Age, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Ages of Failed Companies Over Time")
@@ -66,15 +68,15 @@ ggplot(data=age.df.failed, aes(x=Age, group=as.factor(Last.accounting.closing.da
 
 A.ctd Compare the distributions of AGE of failed companies over selected years
 ```{r}
-age.2017.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017,'Age']
-age.2018.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2018,'Age']
+age.y1.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017,'Age']
+age.y2.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2018,'Age']
 
-t.test(age.2017.failed,age.2018.failed)
-t.test(age.2017.failed,age.2018.failed,alternative = 'less')
-t.test(age.2017.failed,age.2018.failed,alternative = 'greater')
+t.test(age.y1.failed,age.y2.failed)
+t.test(age.y1.failed,age.y2.failed,alternative = 'less')
+t.test(age.y1.failed,age.y2.failed,alternative = 'greater')
 
 # Remove data from stack
-rm(age.2017.failed,age.2018.failed)
+rm(age.y1.failed,age.y2.failed)
 
 # RISULTATO: H0 non significative p-value molto basso. Considero l'ipotesi bilaterale maggiore con p-value = 1
 # La media dell'età delle aziende fallite nel 2017 è superiore alla media dell'età delle aziende fallite nel 2018.
@@ -84,25 +86,25 @@ rm(age.2017.failed,age.2018.failed)
 A.1.ctd Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(age.df.failed$Legal.form)
+company.forms <- unique(aida.age.failed$Legal.form)
 
-table(age.df.failed$Legal.form)
+table(aida.age.failed$Legal.form)
 
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  age.2017.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017 & age.df.failed$Legal.form==form.name ,'Age']
-  age.2018.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2018 & age.df.failed$Legal.form==form.name ,'Age']
+  age.y1.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017 & aida.age.failed$Legal.form==form.name ,'Age']
+  age.y2.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2018 & aida.age.failed$Legal.form==form.name ,'Age']
   
-  if( length(age.2017.failed)>3 & length(age.2018.failed)>3 ){
-    print(t.test(age.2017.failed,age.2018.failed))
-    print(t.test(age.2017.failed,age.2018.failed,alternative = 'less'))
-    print(t.test(age.2017.failed,age.2018.failed,alternative = 'greater'))
+  if( length(age.y1.failed)>3 & length(age.y2.failed)>3 ){
+    print(t.test(age.y1.failed,age.y2.failed))
+    print(t.test(age.y1.failed,age.y2.failed,alternative = 'less'))
+    print(t.test(age.y1.failed,age.y2.failed,alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
   
   # Remove data from stack
-  rm(age.2017.failed,age.2018.failed)
+  rm(age.y1.failed,age.y2.failed)
 }
 
 # RISULTATI
@@ -111,240 +113,30 @@ for(form.name in company.forms){
 A.2.ctd Does AGE change for a specific location (i.e. Tuscany,Lombardy,etc.)?
 ```{r}
 # List of unique legal form values
-company.regions <- unique(age.df.failed$Registered.office.address...Region)
-table(age.df.failed$Registered.office.address...Region)
+company.regions <- unique(aida.age.failed$Registered.office.address...Region)
+table(aida.age.failed$Registered.office.address...Region)
 
 for(region.name in company.regions){
   print("**************************")
   print(region.name)
-  age.2017.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2017 & 
-                                     age.df.failed$Registered.office.address...Region==region.name ,'Age']
-  age.2018.failed <- age.df.failed[age.df.failed$Last.accounting.closing.date == 2018 & 
-                                     age.df.failed$Registered.office.address...Region==region.name ,'Age']
+  age.y1.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017 & 
+                                     aida.age.failed$Registered.office.address...Region==region.name ,'Age']
+  age.y2.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2018 & 
+                                     aida.age.failed$Registered.office.address...Region==region.name ,'Age']
   
-  if( length(age.2017.failed)>3 & length(age.2018.failed)>3 ){
-    print(t.test(age.2017.failed,age.2018.failed))
-    print(t.test(age.2017.failed,age.2018.failed,alternative = 'less'))
-    print(t.test(age.2017.failed,age.2018.failed,alternative = 'greater'))
+  if( length(age.y1.failed)>3 & length(age.y2.failed)>3 ){
+    print(t.test(age.y1.failed,age.y2.failed))
+    print(t.test(age.y1.failed,age.y2.failed,alternative = 'less'))
+    print(t.test(age.y1.failed,age.y2.failed,alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
   
   # Remove data from stack
-  rm(age.2017.failed,age.2018.failed)
+  rm(age.y1.failed,age.y2.failed)
 }
 
 # RISULTATI
 ```
-
-*################*
-*##### SIZE #####*
-*################*
-Company sizes summary
-```{r}
-# import aida dataset
-load("./dataset/size_df.RData") # reload energy dataset
-
-#summary
-skim(size.df)
-
-#dataset
-head(size.df)
-```
-
-Filter sizes of all companies for a specific year (2018)
-```{r}
-# We have selected year equal to 2018 to compare size because it has the highest number of samples
-table(size.df$Last.accounting.closing.date)
-
-# Filtering
-size.df.2018 <- size.df[size.df$Last.accounting.closing.date == 2018,]
-```
-
-Some plots of Size in Year 2018
-```{r}
-# density of Size between failed and active companies at year 2018
-ggplot(data=size.df.2018, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, fill=Failed)) +
-    geom_density(adjust=1.5, alpha=.4) +
-    theme_ipsum() + 
-    ggtitle("Density of Company Sizes in 2018")
-
-```
-
-A. Compare the distributions of SIZE between failed and active companies at a specific year (2018)
-```{r}
-size.2018.active <- size.df.2018[size.df.2018$Failed=='No','Total.assetsth.EURLast.avail..yr']
-size.2018.failed <- size.df.2018[size.df.2018$Failed=='Yes','Total.assetsth.EURLast.avail..yr']
-
-t.test(size.2018.active,size.2018.failed)
-t.test(size.2018.active,size.2018.failed,alternative = 'less')
-t.test(size.2018.active,size.2018.failed,alternative = 'greater')
-
-# Remove data from stack
-rm(size.2018.active,size.2018.failed)
-
-# RISULTATO
-```
-
-A.1 Does SIZE change for a specific company form (i.e. SPA,SRL,etc)?
-```{r}
-# List of unique legal form values
-company.forms <- unique(size.df.2018$Legal.form)
-table(size.df.2018$Legal.form)
-
-for(form.name in company.forms){
-  print("**************************")
-  print(form.name)
-  size.2018.active <- size.df.2018[size.df.2018$Failed=='No' & size.df.2018$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
-  size.2018.failed <- size.df.2018[size.df.2018$Failed=='Yes'& size.df.2018$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
-  
-  if( length(size.2018.active)>3 & length(size.2018.failed)>3 ){
-    print(t.test(size.2018.active,size.2018.failed))
-    print(t.test(size.2018.active,size.2018.failed,alternative = 'less'))
-    print(t.test(size.2018.active,size.2018.failed,alternative = 'greater'))
-    }
-  else print("Non ci sono abbastanza osservazioni")
-  
-  # Remove data from stack
-  rm(size.2018.active,size.2018.failed)
-}
-```
-
-A.2 Does SIZE change for a specific industry sector (see ATECO sectors)?
-```{r}
-# List of unique legal form values
-company.forms <- unique(size.df.2018$ATECO.Sector.Name)
-table(size.df.2018$ATECO.Sector.Name)
-
-for(form.name in company.forms){
-  print("**************************")
-  print(form.name)
-  size.2018.active <- size.df.2018[size.df.2018$Failed=='No' & size.df.2018$ATECO.Sector.Name==form.name ,'Total.assetsth.EURLast.avail..yr']
-  size.2018.failed <- size.df.2018[size.df.2018$Failed=='Yes'& size.df.2018$ATECO.Sector.Name==form.name ,'Total.assetsth.EURLast.avail..yr']
-  
-  if( length(size.2018.active)>3 & length(size.2018.failed)>3 ){
-    print(t.test(size.2018.active,size.2018.failed))
-    print(t.test(size.2018.active,size.2018.failed,alternative = 'less'))
-    print(t.test(size.2018.active,size.2018.failed,alternative = 'greater'))
-    }
-  else print("Non ci sono abbastanza osservazioni")
-  
-  # Remove data from stack
-  rm(size.2018.active,size.2018.failed)
-}
-```
-
-
-*###############*
-*##### ROI #####*
-*###############*
-Company rois summary
-```{r}
-# import aida dataset
-load("./dataset/roi_df.RData") # reload energy dataset
-
-#summary
-skim(roi.df)
-
-#dataset
-head(roi.df)
-```
-
-Filter rois of all companies for a specific year (2018)
-```{r}
-# We have selected year equal to 2018 to compare roi because it has the highest number of samples
-table(roi.df$Last.accounting.closing.date)
-
-# Filtering
-roi.df.2018 <- roi.df[roi.df$Last.accounting.closing.date == 2018,]
-```
-
-Some plots of ROI in Year 2018
-```{r}
-# histogram of ROI between failed and active companies at year 2018
-ggplot(data = roi.df.2018) + 
-  geom_histogram(mapping=aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
-    scale_fill_manual(values=c("#69b3a2", "#404080"))+
-    theme_ipsum() +
-    labs(fill='Failed') + 
-    ggtitle("Histogram of Company ROIs in 2018")
-
-
-# density of ROI between failed and active companies at year 2018
-ggplot(data=roi.df.2018, aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, group=Failed, fill=Failed)) +
-    geom_density(adjust=1.5, alpha=.4) +
-    theme_ipsum() + 
-    ggtitle("Density of Company ROIs in 2018")
-```
-
-A. Compare the distributions of ROI between failed and active companies at a specific year (2018)
-```{r}
-roi.2018.active <- roi.df.2018[roi.df.2018$Failed=='No','Return.on.investment.(ROI).(%)%Last.avail..yr']
-roi.2018.failed <- roi.df.2018[roi.df.2018$Failed=='Yes','Return.on.investment.(ROI).(%)%Last.avail..yr']
-
-t.test(roi.2018.active,roi.2018.failed)
-t.test(roi.2018.active,roi.2018.failed,alternative = 'less')
-t.test(roi.2018.active,roi.2018.failed,alternative = 'greater')
-
-# Remove data from stack
-rm(roi.2018.active,roi.2018.failed)
-
-# RISULTATO
-```
-
-A.1 Does ROI change for a specific company form (i.e. SPA,SRL,etc)?
-```{r}
-# List of unique legal form values
-company.forms <- unique(roi.df.2018$Legal.form)
-table(roi.df.2018$Legal.form)
-
-for(form.name in company.forms){
-  print("**************************")
-  print(form.name)
-  roi.2018.active <- roi.df.2018[roi.df.2018$Failed=='No' & roi.df.2018$Legal.form==form.name ,`Return.on.investment.(ROI).(%)%Last.avail..yr`]
-  roi.2018.failed <- roi.df.2018[roi.df.2018$Failed=='Yes'& roi.df.2018$Legal.form==form.name ,`Return.on.investment.(ROI).(%)%Last.avail..yr`]
-  
-  if( length(roi.2018.active)>3 & length(roi.2018.failed)>3 ){
-    print(t.test(roi.2018.active,roi.2018.failed))
-    print(t.test(roi.2018.active,roi.2018.failed,alternative = 'less'))
-    print(t.test(roi.2018.active,roi.2018.failed,alternative = 'greater'))
-    }
-  else print("Non ci sono abbastanza osservazioni")
-  
-  # Remove data from stack
-  rm(roi.2018.active,roi.2018.failed)
-}
-```
-
-A.2 Does ROI change for a specific industry sector (see ATECO sectors)?
-```{r}
-# List of unique legal form values
-company.forms <- unique(roi.df.2018$ATECO.Sector.Name)
-table(roi.df.2018$ATECO.Sector.Name)
-
-for(form.name in company.forms){
-  print("**************************")
-  print(form.name)
-  roi.2018.active <- roi.df.2018[roi.df.2018$Failed=='No' & roi.df.2018$ATECO.Sector.Name==form.name ,`Return.on.investment.(ROI).(%)%Last.avail..yr`]
-  roi.2018.failed <- roi.df.2018[roi.df.2018$Failed=='Yes'& roi.df.2018$ATECO.Sector.Name==form.name ,`Return.on.investment.(ROI).(%)%Last.avail..yr`]
-  
-  if( length(roi.2018.active)>3 & length(roi.2018.failed)>3 ){
-    print(t.test(roi.2018.active,roi.2018.failed))
-    print(t.test(roi.2018.active,roi.2018.failed,alternative = 'less'))
-    print(t.test(roi.2018.active,roi.2018.failed,alternative = 'greater'))
-    }
-  else print("Non ci sono abbastanza osservazioni")
-  
-  # Remove data from stack
-  rm(roi.2018.active,roi.2018.failed)
-}
-```
-
-
-DOMANDE
-1. last available e last accounting year
-2. se il p value dell'ipotesi nulla è > 0.05 allora le ipotesi bilaterali nn le considero?
-3. Differenze domande A e A.CTD. Nella A dovevo confrontare ad esempio l'età delle aziende attive con l'età delle aziende fallite NELLO STESSO ANNO
-   In questo caso devo confrontare l'età delle aziende fallite in anni diversi. Ma se posso prendere al massimo due campioni per fare il t-test devo       necessariamente prendere un intervallo di 2 anni. Quindi quell'over time si riferisce a una coppia di anni.
 
 
 

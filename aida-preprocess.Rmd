@@ -1,5 +1,5 @@
 ---
-title: "Risk of Business Failure"
+title: "Risk of Business Failure - 01"
 students: F.Gemignani, S.Cucchi, F.Falleni
 output: html_notebook
 ---
@@ -101,6 +101,7 @@ aida$ATECO.Sector.Code <- NULL
 # Cast ATECO.Sector.Name as Factor
 aida$ATECO.Sector.Name <- as.factor(aida$ATECO.Sector.Name)
 
+rm(istat.sectors.map)
 # Description of ISTAT sectors
 # https://www.istat.it/it/archivio/17888
 # http://www.fr.camcom.gov.it/sites/default/files/cciaa/RinnovoConsiglio/ateco-2007-struttura.pdf
@@ -155,164 +156,122 @@ ggplot(data=aida, aes(x=fct_rev(fct_infreq(Legal.form)), fill=Legal.form)) +
 Age
 ```{r}
 # The company age is defined as as the difference between Incorporation.year and Last.accounting.closing.date
-age.df <- aida
+aida.age <- aida
 
 # Handle Incorporation.year: missing values occour
-summary(age.df$Incorporation.year)
+summary(aida.age$Incorporation.year)
 
 # Handle Last.accounting.closing.date:  no missing values
-summary(age.df$Last.accounting.closing.date)
-table(age.df$Last.accounting.closing.date)
+summary(aida.age$Last.accounting.closing.date)
+table(aida.age$Last.accounting.closing.date)
 
 # Print the median for each sector of Incorporation.year
-tapply(age.df$Incorporation.year,age.df$ATECO.Sector.Name,median, na.rm=TRUE)
+tapply(aida.age$Incorporation.year,aida.age$ATECO.Sector.Name,median, na.rm=TRUE)
 
 # For each ATECO.Sector.Name group replace the 'Incorporation year' nan value with the respective median. In this way the result is more accurate than computing the median on entire Incorporation.year values.
 compute.median <- function(x) replace(x, is.na(x), median(x, na.rm = TRUE))
-age.df <- ddply(age.df,~ATECO.Sector.Name,transform, Incorporation.year = compute.median(`Incorporation.year`))
+aida.age <- ddply(aida.age,~ATECO.Sector.Name,transform, Incorporation.year = compute.median(`Incorporation.year`))
 
 # Compute 'Age' attribute
-age.df$Age <- age.df$Last.accounting.closing.date - age.df$Incorporation.year
-age.df$Age <- as.integer(age.df$Age)
+aida.age$Age <- aida.age$Last.accounting.closing.date - aida.age$Incorporation.year
+aida.age$Age <- as.integer(aida.age$Age)
 ```
 ```{r}
 # Anomalies
 
 # There are some company with negative age, with Incorporation year greater then Last accounting closing date. We suppose that are digit error. Therefore we remove all that records
-summary(age.df$Age)
-head(age.df[age.df$Age > 35.5,c('Age','Last.accounting.closing.date','Incorporation.year')])
+summary(aida.age$Age)
+head(aida.age[aida.age$Age > 35.5,c('Age','Last.accounting.closing.date','Incorporation.year')])
 
 # Remove negative ages
-age.df <- age.df[age.df$Age >= 0,]
+aida.age <- aida.age[aida.age$Age >= 0,]
 
 # Age Anomaly Detection: iqr range approach
-iqr <- IQR(age.df$Age)
-q1 <- quantile(age.df$Age,0.25)
-q3 <- quantile(age.df$Age,0.75)
+iqr <- IQR(aida.age$Age)
+q1 <- quantile(aida.age$Age,0.25)
+q3 <- quantile(aida.age$Age,0.75)
 lower.whisker <- q1 - 1.5*iqr
 upper.whisker <- q3 + 1.5*iqr
 
-outliers <- age.df[age.df$Age < lower.whisker | age.df$Age > upper.whisker,'Age']
+outliers <- aida.age[aida.age$Age < lower.whisker | aida.age$Age > upper.whisker,'Age']
 table(outliers)
 
-boxplot(age.df$Age)
+boxplot(aida.age$Age)
 # We decided to don't remove outliers because are not error/noise but companies with higher age. The boxplot shows that the age between the median and the maximum age is sparse.
 
-# export age.df 
-age.df <- age.df[,c('Age','Legal.form','ATECO.Sector.Name','Registered.office.address...Region','Last.accounting.closing.date','Failed')]
-skim(age.df)
-save(age.df, file="./dataset/age_df.RData") # R binary format
+# export aida.age 
+aida.age <- aida.age[,c('Age','Legal.form','ATECO.Sector.Name','Registered.office.address...Region','Last.accounting.closing.date','Failed')]
+skim(aida.age)
+save(aida.age, file="./dataset/aida.age.RData") # R binary format
+rm(aida.age)
 ```
 
 Size
 ```{r}
 # Il legislatore attribuisce la dimensione di un'azienda in base al totale degli elementi che costituiscono l'attivo dello stato patrimoniale, al risultato di esercizio ed al numero di dipendenti. Nel nostro caso abbiamo deciso di attribuire a size il totale delle attività dello sp, in particolare abbiamo considerato il totale degli assets nell'ultimo anno disponibile per esprimere il valore  degli impieghi di un'azienda. 
-size.df <- aida
+aida.size <- aida
 
 # We consider all the company without nan value in total assets last available.
-size.df <- size.df[!is.na(size.df$Total.assetsth.EURLast.avail..yr),]
-summary(size.df$Total.assetsth.EURLast.avail..yr)
+aida.size <- aida.size[!is.na(aida.size$Total.assetsth.EURLast.avail..yr),]
+summary(aida.size$Total.assetsth.EURLast.avail..yr)
 ```
 ```{r}
 # Anomaly detection
 
 # Before outliers detection
-boxplot(size.df$Total.assetsth.EURLast.avail..yr)
-plot(density(size.df$Total.assetsth.EURLast.avail..yr))
+boxplot(aida.size$Total.assetsth.EURLast.avail..yr)
+plot(density(aida.size$Total.assetsth.EURLast.avail..yr))
 
 # Size Anomaly Detection: iqr range approach
-iqr <- IQR(size.df$Total.assetsth.EURLast.avail..yr)
-q1 <- quantile(size.df$Total.assetsth.EURLast.avail..yr,0.25)
-q3 <- quantile(size.df$Total.assetsth.EURLast.avail..yr,0.75)
+iqr <- IQR(aida.size$Total.assetsth.EURLast.avail..yr)
+q1 <- quantile(aida.size$Total.assetsth.EURLast.avail..yr,0.25)
+q3 <- quantile(aida.size$Total.assetsth.EURLast.avail..yr,0.75)
 lower.whisker <- q1 - 1.5*iqr
 upper.whisker <- q3 + 1.5*iqr
 
 # Remove all outliers not between [q1-1.5*iqr,q3+1.5*iqr] (external from two whiskers)
-size.df <- size.df[size.df$Total.assetsth.EURLast.avail..yr >= lower.whisker & size.df$Total.assetsth.EURLast.avail..yr <= upper.whisker,]
+aida.size <- aida.size[aida.size$Total.assetsth.EURLast.avail..yr >= lower.whisker & aida.size$Total.assetsth.EURLast.avail..yr <= upper.whisker,]
 
 #After outliers detection
-boxplot(size.df$Total.assetsth.EURLast.avail..yr)
-plot(density(size.df$Total.assetsth.EURLast.avail..yr))
+boxplot(aida.size$Total.assetsth.EURLast.avail..yr)
+plot(density(aida.size$Total.assetsth.EURLast.avail..yr))
 
-# export age.df 
-size.df <- size.df[,c('Total.assetsth.EURLast.avail..yr','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
-skim(size.df)
-save(size.df, file="./dataset/size_df.RData") # R binary format
+# export aida.size 
+aida.size <- aida.size[,c('Total.assetsth.EURLast.avail..yr','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
+skim(aida.size)
+save(aida.size, file="./dataset/aida.size.RData") # R binary format
+rm(aida.size)
 ```
 
 ROI: Return on Investments
 ```{r}
 # Take all that companies which report ROI of last available year. Obviously all missing values are been deleted. The dataset is composed by 735.268 companies (39.20%)
-roi.df <- aida
+aida.roi <- aida
 
-b<- nrow(roi.df)
-roi.df <- roi.df[!is.na(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr'),]
-a <- nrow(roi.df)
+b<- nrow(aida.roi)
+aida.roi <- aida.roi[!is.na(aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr'),]
+a <- nrow(aida.roi)
 ratio <- a*100/b
 
-summary(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr')
+summary(aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr')
 ```
 ```{r}
 # ROI Anomaly Detection: iqr range approach
-iqr <- IQR(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr')
-q1 <- quantile(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr',0.25)
-q3 <- quantile(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr',0.75)
+iqr <- IQR(aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr')
+q1 <- quantile(aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr',0.25)
+q3 <- quantile(aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr',0.75)
 lower.whisker <- q1 - 1.5*iqr
 upper.whisker <- q3 + 1.5*iqr
 
-outliers <- roi.df[roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr' < lower.whisker | 
-                     roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr' > upper.whisker,c('Return.on.investment.(ROI).(%)%Last.avail..yr')]
+outliers <- aida.roi[aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr' < lower.whisker | 
+                     aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr' > upper.whisker,c('Return.on.investment.(ROI).(%)%Last.avail..yr')]
 #table(outliers)
-boxplot(roi.df$'Return.on.investment.(ROI).(%)%Last.avail..yr')
+boxplot(aida.roi$'Return.on.investment.(ROI).(%)%Last.avail..yr')
 
 # The outliers are companies with the higher and lower roi. We don't remove these record because the roi dataset composed only from 20.61% of record and could be usefull.
 
-# export age.df 
-roi.df <- roi.df[,c('Return.on.investment.(ROI).(%)%Last.avail..yr','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
-skim(roi.df)
-save(roi.df, file="./dataset/roi_df.RData") # R binary format
+# export aida.roi 
+aida.roi <- aida.roi[,c('Return.on.investment.(ROI).(%)%Last.avail..yr','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
+skim(aida.roi)
+save(aida.roi, file="./dataset/aida.roi.RData") # R binary format
 ```
-
-Solvency Ratio
-```{r}
-summary(aida$`Solvency.ratio.(%)%Last.avail..yr`)
-
-# Deleting missing values
-solvency.df <- aida
-
-b<- nrow(solvency.df)
-solvency.df <- solvency.df[!is.na(solvency.df$`Solvency.ratio.(%)%Last.avail..yr`),]
-solvency.df <- solvency.df[!is.na(solvency.df$`Solvency.ratio.(%)%Year.-.1`),]
-solvency.df <- solvency.df[!is.na(solvency.df$`Solvency.ratio.(%)%Year.-.2`),]
-a <- nrow(solvency.df)
-ratio <- a*100/b
-
-# Add attribute avg.size which rappresents the average size of the last three years.
-solvency.df$avg.solvency <- round((solvency.df$`Solvency.ratio.(%)%Last.avail..yr`
-                              + solvency.df$`Solvency.ratio.(%)%Year.-.1` + solvency.df$`Solvency.ratio.(%)%Year.-.2`)/3)
-
-summary(solvency.df$avg.solvency)
-```
-```{r}
-# ROI Anomaly Detection: iqr range approach
-iqr <- IQR(solvency.df$avg.solvency)
-q1 <- quantile(solvency.df$avg.solvency,0.25)
-q3 <- quantile(solvency.df$avg.solvency,0.75)
-lower.whisker <- q1 - 1.5*iqr
-upper.whisker <- q3 + 1.5*iqr
-
-outliers <- solvency.df[solvency.df$avg.solvency < lower.whisker | solvency.df$avg.solvency > upper.whisker,c('avg.solvency')]
-#table(outliers)
-boxplot(solvency.df$avg.solvency)
-
-# The avg.solvency distribution is well balanced and doesn't show any anomaly
-
-# export age.df 
-solvency.df <- solvency.df[,c('avg.solvency','Legal.form','ATECO.Sector.Name','Registered.office.address.-.Region','Last.accounting.closing.date','Failed')]
-skim(solvency.df)
-save(solvency.df, file="./dataset/solvency_df.RData") # R binary format
-```
-
-
-
-
