@@ -1,6 +1,7 @@
 ---
-title: "Question A.CTD"
-output: html_notebook
+title:    "Risk of Business Failure - Question A.ctd"
+students: F.Gemignani, S.Cucchi, F.Falleni
+output:   aida-qa-ctd.nb.html
 ---
 
 Setup
@@ -141,11 +142,11 @@ for(region.name in company.regions){
 
 
 
-*###############*
-*##### SIZE ####*
-*###############*
+*##############*
+*#### SIZE ####*
+*##############*
 
-*###############*
-*##### ROI #####*
-*###############*
+*##############*
+*#### ROI #####*
+*##############*
 

@@ -1,6 +1,7 @@
 ---
-title: "Question A"
-output: html_notebook
+title:    "Risk of Business Failure - Question A"
+students: F.Gemignani, S.Cucchi, F.Falleni
+output:   aida-qa-ctd.nb.html
 ---
 
 Setup

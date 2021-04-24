@@ -1,7 +1,7 @@
 ---
-title: "Risk of Business Failure - 01"
+title:    "Risk of Business Failure - Pre-Process Question A, A.ctd, B"
 students: F.Gemignani, S.Cucchi, F.Falleni
-output: html_notebook
+output:   aida-preprocess.nb.html
 ---
 
 Libraries
