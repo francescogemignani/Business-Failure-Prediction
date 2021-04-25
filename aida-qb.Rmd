@@ -49,12 +49,14 @@ Company ages summary
 ```{r}
 # import aida dataset
 load("./dataset/aida.age.RData")
+aida<-aida.age
+rm(aida.age)
 
 #summary
-skim(aida.age)
+skim(aida)
 
 #dataset
-head(aida.age)
+head(aida)
 ```
 
 B.  What is the distribution of failures wrt AGE of firms at a specific year?
@@ -62,10 +64,10 @@ B.  What is the distribution of failures wrt AGE of firms at a specific year?
 # Nel 2018, la probabilità che un'azienda sia fallita conoscendo la sua età
 
 # We have selected year 2018 because it has the highest number of companies
-aida.age.yy <- aida.age[aida.age$Last.accounting.closing.date==2018,]
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
 
 # Table for year 2018: age -> number of company failed and not failed 
-age.stat.yy <- table(aida.age.yy[,c('Age','Failed')])
+age.stat.yy <- table(aida.yy[,c('Age','Failed')])
 
 # Compute the conditional probability P(Failed=Yes | Age=x) = P(Failed=Yes,Age=x)/P(Age=x)
 cond.tab <- (age.stat.yy[,2] / (age.stat.yy[,1]+age.stat.yy[,2]) )
@@ -80,15 +82,10 @@ age.sum <- cbind(not.failed=age.stat.yy[,1],
 
 Plot the distribution of failures knowing AGE in the specific year
 ```{r}
-# Simple Plot
-barplot(age.sum[,4])
-
-# ggplot2 histogram
-age.sum.df<-as.data.frame(age.sum)
-age.sum.df$Age <- row.names(age.sum.df)
-
-ggplot(data = age.sum.df) +
-  geom_bar(mapping=aes(x=Age, y=p.failed.knowing.age), stat='identity') 
+tit <- paste("Year = 2018")
+barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
 ```
 
 B.1  Does AGE change for a specific company form?
@@ -99,18 +96,18 @@ B.1  Does AGE change for a specific company form?
 # societaria per cui è stata  costituita.
 
 # Filter all companies at specified year
-aida.age.yy <- aida.age[aida.age$Last.accounting.closing.date==2018,]
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
 
 # List of unique legal form values at specified year
-company.forms <- unique(aida.age.yy$Legal.form)
-table(aida.age.yy$Legal.form)
+company.forms <- unique(aida.yy$Legal.form)
+table(aida.yy$Legal.form)
 
 for(form.name in company.forms){
   # Filter all companies (at selected year) with a certain legal form
-  aida.age.yy.form <- aida.age.yy[aida.age.yy$Legal.form==form.name,]
+  aida.yy.form <- aida.yy[aida.yy$Legal.form==form.name,]
   
   # Table: age <-> #failed/active companies (at specified year with a certain legal form)
-  age.stat.yy <- table(aida.age.yy.form[,c('Age','Failed')])
+  age.stat.yy <- table(aida.yy.form[,c('Age','Failed')])
 
   # Compute the conditional probability  )
   cond.tab <- (age.stat.yy[,2] / (age.stat.yy[,1]+age.stat.yy[,2]) )
@@ -135,18 +132,18 @@ B.2  Does AGE change for a specific ATECO Sector?
 # Tra tutte le aziende del 2018, calcolare la probabilità che un'azienda sia fallita conoscendo la sua età e il settore
 
 # Filter all companies at specified year
-aida.age.yy <- aida.age[aida.age$Last.accounting.closing.date==2018,]
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
 
 # List of unique ATECO sector values at specified year
-company.sectors <- unique(aida.age.yy$ATECO.Sector.Name)
-table(aida.age.yy$ATECO.Sector.Name)
+company.sectors <- unique(aida.yy$ATECO.Sector.Name)
+table(aida.yy$ATECO.Sector.Name)
 
 for(sector.name in company.sectors){
   # Filter all companies (at selected year) with a certain ATECO sector
-  aida.age.yy.sector <- aida.age.yy[aida.age.yy$ATECO.Sector.Name==sector.name,]
+  aida.yy.sector <- aida.yy[aida.yy$ATECO.Sector.Name==sector.name,]
   
   # Table: age <-> #failed/active companies (at specified year with a certain sector)
-  age.stat.yy <- table(aida.age.yy.sector[,c('Age','Failed')])
+  age.stat.yy <- table(aida.yy.sector[,c('Age','Failed')])
 
   # Compute the conditional probability
   cond.tab <- (age.stat.yy[,2] / (age.stat.yy[,1]+age.stat.yy[,2]) )
@@ -171,18 +168,18 @@ B.3  Does AGE change for a specific Location?
 # Tra tutte le aziende del 2018, calcolare la probabilità che un'azienda sia fallita conoscendo la sua età e la regione
 
 # Filter all companies at specified year
-aida.age.yy <- aida.age[aida.age$Last.accounting.closing.date==2018,]
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
 
 # List of unique region values at specified year
-company.regions <- unique(aida.age.yy$Registered.office.address...Region)
-table(aida.age.yy$Registered.office.address...Region)
+company.regions <- unique(aida.yy$Registered.office.address...Region)
+table(aida.yy$Registered.office.address...Region)
 
 for( region.name in company.regions){
   # Filter all companies (at selected year) with a certain region
-  aida.age.yy.region <- aida.age.yy[aida.age.yy$Registered.office.address...Region==region.name,]
+  aida.yy.region <- aida.yy[aida.yy$Registered.office.address...Region==region.name,]
   
   # Table: age <-> #failed/active  companies (at specified year with a certain location)
-  age.stat.yy <- table(aida.age.yy.region[,c('Age','Failed')])
+  age.stat.yy <- table(aida.yy.region[,c('Age','Failed')])
 
   # Compute the conditional probability  )
   cond.tab <- (age.stat.yy[,2] / (age.stat.yy[,1]+age.stat.yy[,2]) )
@@ -200,95 +197,54 @@ for( region.name in company.regions){
   plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
 }
 ```
-`
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
 
 # Number of observations in Age
-n.obs <- length(aida.age.yy$Age)
+n.obs <- length(aida.yy$Age)
 sqrt(n.obs)
 # Compute the Freedman-Diaconis bin width
-fdw <- (2*IQR(aida.age.yy$Age)) / (n.obs^(1/3))
+fdw <- (2*IQR(aida.yy$Age)) / (n.obs^(1/3))
 
 # Compute the number of bins
-n.bins <- (max(aida.age.yy$Age) - min(aida.age.yy$Age)) / fdw
+n.bins <- (max(aida.yy$Age) - min(aida.yy$Age)) / fdw
 n.bins <- as.integer(n.bins)
 
-table(cut(aida.age.yy$Age, breaks = n.bins))
+table(cut(aida.yy$Age, breaks = n.bins))
 
 ```
 
 
-
-
-
+*################*
+*##### SIZE #####*
+*################*
+Company ages summary
 ```{r}
-bins <- cut(aida.age.yy$Age,breaks=11)
-table(bins)  
+# Clean enviroment and import aida dataset for size
+rm(list = ls())
+load("./dataset/aida.size.RData")
+aida<-aida.size
+rm(aida.size)
 
-# Length of Age distribution
-n <- length(aida.age.yy$Age)
+#summary
+skim(aida)
 
-# 3rd-Quartile - 1st-Quartile of Age
-iqr <- IQR(aida.age.yy$Age)
-
-# Diaconis width
-b <- (2*iqr)/(n^(1/3))
-lower.whisker <- q1 - 1.5*iqr
-upper.whisker <- q3 + 1.5*iqr
-
+#dataset
+head(aida)
 ```
-
-
-
-```{r}
-
-age.cond.prob <- function(aida,year,attribute){
-  print(aida$`attribute`)
-
-  #Filter all companies at specified year
-  aida.yy <- aida[aida$Last.accounting.closing.date==year,]
-  
-  #List of unique "attribute" values. "attribute" can be: Legal.form, ATECO.Sector.Name, Registered.office.address...Region
-  company.values <- unique(aida.yy$col)
-  
-  for( value in company.values) {
-     # Filter all companies with a certain "value" in "attribute"
-    aida.yy.value <- aida.yy[(aida.yy$attribute) == value,]
-    
-    # Make a table: age <-> #failed/active companies (at specified year and a certain attribute value)
-    age.stat <- table(aida.yy.value[,c('Age','Failed')])
-    
-    # Compute the conditional probability
-    # P(Failed=Yes | Age=x) = P(Failed=Yes,Age=x) / P(Age=x)
-    cond.tab <- (age.stat[,2] / (age.stat[,1]+age.stat[,2]) )
-    
-    # Combine <age,#companies active, #companies failed, #all companies, P(Failed=Yes | Age=age)>
-    age.sum <- cbind(not.failed=age.stat[,1],
-                     failed=age.stat[,2],
-                     total=(age.stat[,1]+age.stat[,2]),
-                     p.failed.knowing.age=cond.tab)
-    
-    #Plot conditional probability
-    title <- paste("Year = ",year," ",attribute," = ",value)
-    barplot(age.sum[,4],main = title, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-    plot(age.sum[,4],type = 'h',main = title, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-    plot(age.sum[,4],type = 'l',main = title, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-
-  }
-  
-}
-```
-
-B.1  Does AGE change for a specific company form?
-```{r}
-age.cond.prob(aida.age,year = 2018, 'Legal.form')
-```
-
-
-
-
 
 
 

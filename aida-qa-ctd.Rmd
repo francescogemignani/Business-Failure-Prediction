@@ -35,32 +35,34 @@ Company ages summary
 ```{r}
 # import age dcompany ata
 load("./dataset/aida.age.RData") 
+aida <- aida.age
+rm(aida.age)
 
 #summary
-skim(aida.age)
+skim(aida)
 
 #dataset
-head(aida.age)
+head(aida)
 ```
 
 Filter ages of failed company for an interval of year
 ```{r}
 # Filtering ages of all failed companies
-aida.age.failed <- aida.age[aida.age$Failed=='Yes',]
+aida.failed <- aida[aida$Failed=='Yes',]
 
 # We compare the distribution of age if failed companies over two years
-table(aida.age.failed$Last.accounting.closing.date)
+table(aida.failed$Last.accounting.closing.date)
 
 # Filtering ages of all failed companies over years
-aida.age.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017 | aida.age.failed$Last.accounting.closing.date == 2018 ,]
+aida.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 | aida.failed$Last.accounting.closing.date == 2018 ,]
 
-rm(aida.age)
+rm(aida)
 ```
 
 Density of Age of Failed Companies Over Years selected
 ```{r}
 # density of age of failed companies over years selected
-ggplot(data=aida.age.failed, aes(x=Age, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
+ggplot(data=aida.failed, aes(x=Age, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Ages of Failed Companies Over Time")
@@ -69,8 +71,8 @@ ggplot(data=aida.age.failed, aes(x=Age, group=as.factor(Last.accounting.closing.
 
 A.ctd Compare the distributions of AGE of failed companies over selected years
 ```{r}
-age.y1.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017,'Age']
-age.y2.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2018,'Age']
+age.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017,'Age']
+age.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018,'Age']
 
 t.test(age.y1.failed,age.y2.failed)
 t.test(age.y1.failed,age.y2.failed,alternative = 'less')
@@ -87,15 +89,15 @@ rm(age.y1.failed,age.y2.failed)
 A.1.ctd Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(aida.age.failed$Legal.form)
+company.forms <- unique(aida.failed$Legal.form)
 
-table(aida.age.failed$Legal.form)
+table(aida.failed$Legal.form)
 
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  age.y1.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017 & aida.age.failed$Legal.form==form.name ,'Age']
-  age.y2.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2018 & aida.age.failed$Legal.form==form.name ,'Age']
+  age.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & aida.failed$Legal.form==form.name ,'Age']
+  age.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & aida.failed$Legal.form==form.name ,'Age']
   
   if( length(age.y1.failed)>3 & length(age.y2.failed)>3 ){
     print(t.test(age.y1.failed,age.y2.failed))
@@ -114,16 +116,16 @@ for(form.name in company.forms){
 A.2.ctd Does AGE change for a specific location (i.e. Tuscany,Lombardy,etc.)?
 ```{r}
 # List of unique legal form values
-company.regions <- unique(aida.age.failed$Registered.office.address...Region)
-table(aida.age.failed$Registered.office.address...Region)
+company.regions <- unique(aida.failed$Registered.office.address...Region)
+table(aida.failed$Registered.office.address...Region)
 
 for(region.name in company.regions){
   print("**************************")
   print(region.name)
-  age.y1.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2017 & 
-                                     aida.age.failed$Registered.office.address...Region==region.name ,'Age']
-  age.y2.failed <- aida.age.failed[aida.age.failed$Last.accounting.closing.date == 2018 & 
-                                     aida.age.failed$Registered.office.address...Region==region.name ,'Age']
+  age.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & 
+                                     aida.failed$Registered.office.address...Region==region.name ,'Age']
+  age.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & 
+                                     aida.failed$Registered.office.address...Region==region.name ,'Age']
   
   if( length(age.y1.failed)>3 & length(age.y2.failed)>3 ){
     print(t.test(age.y1.failed,age.y2.failed))

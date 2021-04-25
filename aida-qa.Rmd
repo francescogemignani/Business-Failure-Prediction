@@ -35,23 +35,25 @@ Company ages summary
 ```{r}
 # import aida dataset
 load("./dataset/aida.age.RData") # reload energy dataset
+aida <- aida.age
+rm(aida.age)
 
 #summary
-skim(aida.age)
+skim(aida)
 
 #dataset
-head(aida.age)
+head(aida)
 ```
 
 Filter ages of all companies for a specific year (2018)
 ```{r}
 # We have selected year equal to 2018 to compare age because it has the highest number of samples
-table(aida.age$Last.accounting.closing.date)
+table(aida$Last.accounting.closing.date)
 
 # Filtering
-aida.age.yy <- aida.age[aida.age$Last.accounting.closing.date == 2018,]
+aida.yy <- aida[aida$Last.accounting.closing.date == 2018,]
 
-rm(aida.age)
+rm(aida)
 ```
 
 Some plots of Age in Year 2018
@@ -59,7 +61,7 @@ Some plots of Age in Year 2018
 
 ##### AGE
 # histogram of age between failed and active companies at year 2018
-ggplot(data = aida.age.yy) + 
+ggplot(data = aida.yy) + 
   geom_histogram(mapping=aes(x=Age, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
     scale_fill_manual(values=c("#69b3a2", "#404080"))+
     theme_ipsum() +
@@ -67,7 +69,7 @@ ggplot(data = aida.age.yy) +
     ggtitle("Histogram of Company ages in 2018")
 
 # density of age between failed and active companies at year 2018
-ggplot(data=aida.age.yy, aes(x=Age, group=Failed, fill=Failed)) +
+ggplot(data=aida.yy, aes(x=Age, group=Failed, fill=Failed)) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Company ages in 2018")
@@ -76,8 +78,11 @@ ggplot(data=aida.age.yy, aes(x=Age, group=Failed, fill=Failed)) +
 
 A. Compare the distributions of AGE between failed and active companies at a specific year (2018)
 ```{r}
-age.yy.active <- aida.age.yy[aida.age.yy$Failed=='No','Age']
-age.yy.failed <- aida.age.yy[aida.age.yy$Failed=='Yes','Age']
+age.yy.active <- aida.yy[aida.yy$Failed=='No','Age']
+age.yy.failed <- aida.yy[aida.yy$Failed=='Yes','Age']
+
+ks_res = ks.test(age.yy.active,age.yy.failed)
+ks_res
 
 t.test(age.yy.active,age.yy.failed)
 t.test(age.yy.active,age.yy.failed,alternative = 'less')
@@ -97,16 +102,17 @@ rm(age.yy.active,age.yy.failed)
 A.1 Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(aida.age.yy$Legal.form)
-table(aida.age.yy$Legal.form)
+company.forms <- unique(aida.yy$Legal.form)
+table(aida.yy$Legal.form)
 
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  age.yy.active <- aida.age.yy[aida.age.yy$Failed=='No' & aida.age.yy$Legal.form==form.name ,'Age']
-  age.yy.failed <- aida.age.yy[aida.age.yy$Failed=='Yes'& aida.age.yy$Legal.form==form.name ,'Age']
+  age.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$Legal.form==form.name ,'Age']
+  age.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$Legal.form==form.name ,'Age']
   
   if( length(age.yy.active)>3 & length(age.yy.failed)>3 ){
+    
     print(t.test(age.yy.active,age.yy.failed))
     print(t.test(age.yy.active,age.yy.failed,alternative = 'less'))
     print(t.test(age.yy.active,age.yy.failed,alternative = 'greater'))
@@ -121,14 +127,14 @@ for(form.name in company.forms){
 A.2 Does AGE change for a specific industry sector (see ATECO sectors)?
 ```{r}
 # List of unique company sector names
-company.sectors <- unique(aida.age.yy$ATECO.Sector.Name)
-table(aida.age.yy$ATECO.Sector.Name)
+company.sectors <- unique(aida.yy$ATECO.Sector.Name)
+table(aida.yy$ATECO.Sector.Name)
 
 for(sector.name in company.sectors){
   print("**************************")
   print(sector.name)
-  age.yy.active <- aida.age.yy[aida.age.yy$Failed=='No' & aida.age.yy$ATECO.Sector.Name==sector.name ,'Age']
-  age.yy.failed <- aida.age.yy[aida.age.yy$Failed=='Yes'& aida.age.yy$ATECO.Sector.Name==sector.name ,'Age']
+  age.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$ATECO.Sector.Name==sector.name ,'Age']
+  age.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$ATECO.Sector.Name==sector.name ,'Age']
   
   if( length(age.yy.active)>3 & length(age.yy.failed)>3 ){
     print(t.test(age.yy.active,age.yy.failed))
@@ -141,7 +147,7 @@ for(sector.name in company.sectors){
   rm(age.yy.active,age.yy.failed)
 }
 
-rm(aida.age.yy)
+rm(aida.yy)
 ```
 
 *################*
@@ -150,30 +156,33 @@ rm(aida.age.yy)
 Company sizes summary
 ```{r}
 # import aida dataset
+rm(list = ls())
 load("./dataset/aida.size.RData") # reload energy dataset
+aida <- aida.size
+rm(aida.size)
 
 #summary
-skim(aida.size)
+skim(aida)
 
 #dataset
-head(aida.size)
+head(aida)
 ```
 
 Filter sizes of all companies for a specific year (2018)
 ```{r}
 # We have selected year equal to 2018 to compare size because it has the highest number of samples
-table(aida.size$Last.accounting.closing.date)
+table(aida$Last.accounting.closing.date)
 
 # Filtering
-aida.size.yy <- aida.size[aida.size$Last.accounting.closing.date == 2018,]
+aida.yy <- aida[aida$Last.accounting.closing.date == 2018,]
 
-rm(aida.size)
+rm(aida)
 ```
 
 Some plots of Size in Year 2018
 ```{r}
 # density of Size between failed and active companies at year 2018
-ggplot(data=aida.size.yy, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, fill=Failed)) +
+ggplot(data=aida.yy, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, fill=Failed)) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Company Sizes in 2018")
@@ -182,8 +191,8 @@ ggplot(data=aida.size.yy, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, 
 
 A. Compare the distributions of SIZE between failed and active companies at a specific year (2018)
 ```{r}
-size.yy.active <- aida.size.yy[aida.size.yy$Failed=='No','Total.assetsth.EURLast.avail..yr']
-size.yy.failed <- aida.size.yy[aida.size.yy$Failed=='Yes','Total.assetsth.EURLast.avail..yr']
+size.yy.active <- aida.yy[aida.yy$Failed=='No','Total.assetsth.EURLast.avail..yr']
+size.yy.failed <- aida.yy[aida.yy$Failed=='Yes','Total.assetsth.EURLast.avail..yr']
 
 t.test(size.yy.active,size.yy.failed)
 t.test(size.yy.active,size.yy.failed,alternative = 'less')
@@ -198,14 +207,14 @@ rm(size.yy.active,size.yy.failed)
 A.1 Does SIZE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(aida.size.yy$Legal.form)
-table(aida.size.yy$Legal.form)
+company.forms <- unique(aida.yy$Legal.form)
+table(aida.yy$Legal.form)
 
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  size.yy.active <- aida.size.yy[aida.size.yy$Failed=='No' & aida.size.yy$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
-  size.yy.failed <- aida.size.yy[aida.size.yy$Failed=='Yes'& aida.size.yy$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
+  size.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
+  size.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
   
   if( length(size.yy.active)>3 & length(size.yy.failed)>3 ){
     print(t.test(size.yy.active,size.yy.failed))
@@ -222,14 +231,14 @@ for(form.name in company.forms){
 A.2 Does SIZE change for a specific industry sector (see ATECO sectors)?
 ```{r}
 # List of unique legal form values
-company.sectors <- unique(aida.size.yy$ATECO.Sector.Name)
-table(aida.size.yy$ATECO.Sector.Name)
+company.sectors <- unique(aida.yy$ATECO.Sector.Name)
+table(aida.yy$ATECO.Sector.Name)
 
 for(sector.name in company.sectors){
   print("**************************")
   print(sector.name)
-  size.yy.active <- aida.size.yy[aida.size.yy$Failed=='No' & aida.size.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth.EURLast.avail..yr']
-  size.yy.failed <- aida.size.yy[aida.size.yy$Failed=='Yes'& aida.size.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth.EURLast.avail..yr']
+  size.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth.EURLast.avail..yr']
+  size.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth.EURLast.avail..yr']
   
   if( length(size.yy.active)>3 & length(size.yy.failed)>3 ){
     print(t.test(size.yy.active,size.yy.failed))
@@ -242,7 +251,7 @@ for(sector.name in company.sectors){
   rm(size.yy.active,size.yy.failed)
 }
 
-rm(aida.size.yy)
+rm(aida.yy)
 ```
 
 
@@ -252,30 +261,33 @@ rm(aida.size.yy)
 Company rois summary
 ```{r}
 # import aida dataset
+rm(list = ls())
 load("./dataset/aida.roi.RData") # reload energy dataset
+aida <- aida.roi
+rm(aida.roi)
 
 #summary
-skim(aida.roi)
+skim(aida)
 
 #dataset
-head(aida.roi)
+head(aida)
 ```
 
 Filter rois of all companies for a specific year (2018)
 ```{r}
 # We have selected year equal to 2018 to compare roi because it has the highest number of samples
-table(aida.roi$Last.accounting.closing.date)
+table(aida$Last.accounting.closing.date)
 
 # Filtering
-aida.roi.yy <- aida.roi[aida.roi$Last.accounting.closing.date == 2018,]
+aida.yy <- aida[aida$Last.accounting.closing.date == 2018,]
 
-rm(aida.roi)
+rm(aida)
 ```
 
 Some plots of ROI in Year 2018
 ```{r}
 # histogram of ROI between failed and active companies at year 2018
-ggplot(data = aida.roi.yy) + 
+ggplot(data = aida.yy) + 
   geom_histogram(mapping=aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
     scale_fill_manual(values=c("#69b3a2", "#404080"))+
     theme_ipsum() +
@@ -284,7 +296,7 @@ ggplot(data = aida.roi.yy) +
 
 
 # density of ROI between failed and active companies at year 2018
-ggplot(data=aida.roi.yy, aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, group=Failed, fill=Failed)) +
+ggplot(data=aida.yy, aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, group=Failed, fill=Failed)) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Company ROIs in 2018")
@@ -292,8 +304,8 @@ ggplot(data=aida.roi.yy, aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, 
 
 A. Compare the distributions of ROI between failed and active companies at a specific year (2018)
 ```{r}
-roi.yy.active <- aida.roi.yy[aida.roi.yy$Failed=='No','Return.on.investment.(ROI).(%)%Last.avail..yr']
-roi.yy.failed <- aida.roi.yy[aida.roi.yy$Failed=='Yes','Return.on.investment.(ROI).(%)%Last.avail..yr']
+roi.yy.active <- aida.yy[aida.yy$Failed=='No','Return.on.investment.(ROI).(%)%Last.avail..yr']
+roi.yy.failed <- aida.yy[aida.yy$Failed=='Yes','Return.on.investment.(ROI).(%)%Last.avail..yr']
 
 t.test(roi.yy.active,roi.yy.failed)
 t.test(roi.yy.active,roi.yy.failed,alternative = 'less')
@@ -308,14 +320,14 @@ rm(roi.yy.active,roi.yy.failed)
 A.1 Does ROI change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(aida.roi.yy$Legal.form)
-table(aida.roi.yy$Legal.form)
+company.forms <- unique(aida.yy$Legal.form)
+table(aida.yy$Legal.form)
 
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  roi.yy.active <- aida.roi.yy[aida.roi.yy$Failed=='No' & aida.roi.yy$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
-  roi.yy.failed <- aida.roi.yy[aida.roi.yy$Failed=='Yes'& aida.roi.yy$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
+  roi.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
+  roi.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
   
   if( length(roi.yy.active)>3 & length(roi.yy.failed)>3 ){
     print(t.test(roi.yy.active,roi.yy.failed))
@@ -332,14 +344,14 @@ for(form.name in company.forms){
 A.2 Does ROI change for a specific industry sector (see ATECO sectors)?
 ```{r}
 # List of unique legal form values
-company.sectors <- unique(aida.roi.yy$ATECO.Sector.Name)
-table(aida.roi.yy$ATECO.Sector.Name)
+company.sectors <- unique(aida.yy$ATECO.Sector.Name)
+table(aida.yy$ATECO.Sector.Name)
 
 for(sector.name in company.sectors){
   print("**************************")
   print(sector.name)
-  roi.yy.active <- aida.roi.yy[aida.roi.yy$Failed=='No' & aida.roi.yy$ATECO.Sector.Name==sector.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
-  roi.yy.failed <- aida.roi.yy[aida.roi.yy$Failed=='Yes'& aida.roi.yy$ATECO.Sector.Name==sector.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
+  roi.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$ATECO.Sector.Name==sector.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
+  roi.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$ATECO.Sector.Name==sector.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
   
   if( length(roi.yy.active)>3 & length(roi.yy.failed)>3 ){
     print(t.test(roi.yy.active,roi.yy.failed))
@@ -352,7 +364,7 @@ for(sector.name in company.sectors){
   rm(roi.yy.active,roi.yy.failed)
 }
 
-rm(aida.roi.yy)
+rm(aida.yy)
 ```
 
 
