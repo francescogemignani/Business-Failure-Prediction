@@ -18,7 +18,7 @@ rm(list=ls())
 wdir_fg = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
 wdir_ff = "C:/Users/falle/Documents/GitHub/Risk-of-Business-Failure"
 wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
-setwd(wdir_sc)
+setwd(wdir_fg)
 ```
 
 *########################################## QUESTION A CTD ################################################*
@@ -50,7 +50,7 @@ Filter ages of failed company for an interval of year
 # Filtering ages of all failed companies
 aida.failed <- aida[aida$Failed=='Yes',]
 
-# We compare the distribution of age if failed companies over two years
+# We compare the distribution of age with failed companies over two years
 table(aida.failed$Last.accounting.closing.date)
 
 # Filtering ages of all failed companies over years
@@ -138,6 +138,7 @@ for(region.name in company.regions){
   rm(age.y1.failed,age.y2.failed)
 }
 
+rm(aida.failed)
 # RISULTATI
 ```
 
@@ -151,35 +152,36 @@ for(region.name in company.regions){
 ```{r}
 # import roi dcompany ata
 load("./dataset/aida.size.RData") 
+aida <- aida.size
+rm(aida.size)
 
 #summary
-skim(aida.size)
+skim(aida)
 
 #dataset
-head(aida.size)
+head(aida)
 
 ```
 
-Filter size of failed company for an interval of years 
+Filter SIZE of failed company for an interval of years 
 ```{r}
 # Filtering ages of all failed companies
-aida.failed <- aida.size[aida.size$Failed=='Yes',]
+aida.failed <- aida[aida$Failed=='Yes',]
 
-# We compare the distribution of age if failed companies over two years
+# We compare the distribution of size with failed companies over two years
 table(aida.failed$Last.accounting.closing.date)
 
-# Filtering ages of all failed companies over years
+# Filtering sizes of all failed companies over two selected years
 aida.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 | aida.failed$Last.accounting.closing.date == 2018 ,]
 
-names(aida.failed)[names(aida.failed) == "Total.assetsth.EURLast.avail..yr"] <- "Size"
-
+#names(aida.failed)[names(aida.failed) == "Total.assetsth.EURLast.avail..yr"] <- "Size"
 rm(aida)
 ```
 
-Density of Size of failed companier over selected years
+Density of SIZE of failed companier over selected years
 ```{r}
 # density of size of failed companies over selected years
-ggplot(data=aida.failed, aes(x=Size, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
+ggplot(data=aida.failed, aes(x=Total.assetsth.EURLast.avail..yr, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Size of Failed Companies Over Time")
@@ -188,22 +190,20 @@ ggplot(data=aida.failed, aes(x=Size, group=as.factor(Last.accounting.closing.dat
 
 A.ctd Compare the distributions of SIZE of failed companies over selected years
 ```{r}
-age.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017,'Size']
-age.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018,'Size']
+size.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017,'Total.assetsth.EURLast.avail..yr']
+size.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018,'Total.assetsth.EURLast.avail..yr']
 
-t.test(age.y1.failed,age.y2.failed)
-t.test(age.y1.failed,age.y2.failed,alternative = 'less')
-t.test(age.y1.failed,age.y2.failed,alternative = 'greater')
+t.test(size.y1.failed,size.y2.failed)
+t.test(size.y1.failed,size.y2.failed,alternative = 'less')
+t.test(size.y1.failed,size.y2.failed,alternative = 'greater')
 
 # Remove data from stack
-rm(age.y1.failed,age.y2.failed)
+rm(size.y1.failed,size.y2.failed)
 
-# RISULTATO: H0 non significative p-value molto basso. Considero l'ipotesi bilaterale maggiore con p-value = 1
-# La media della dimensione delle aziende fallite nel 2017 è superiore alla media della dimensione delle aziende fallite nel 2018.
-# Quindi le aziende fallite nel 2017 sono più grandi di quelle fallite nel 2018.
+# RISULTATO
 ```
 
-A.1.ctd Does size change for a specific company form (i.e. SPA,SRL,etc)?
+A.1.ctd Does SIZE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
 company.forms <- unique(aida.failed$Legal.form)
@@ -213,24 +213,24 @@ table(aida.failed$Legal.form)
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & aida.failed$Legal.form==form.name ,'Size']
-  roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & aida.failed$Legal.form==form.name ,'Size']
+  size.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & aida.failed$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
+  size.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & aida.failed$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
   
-  if( length(roi.y1.failed)>3 & length(roi.y2.failed)>3 ){
-    print(t.test(roi.y1.failed, roi.y2.failed))
-    print(t.test(roi.y1.failed, roi.y2.failed, alternative = 'less'))
-    print(t.test(roi.y1.failed, roi.y2.failed, alternative = 'greater'))
+  if( length(size.y1.failed)>3 & length(size.y2.failed)>3 ){
+    print(t.test(size.y1.failed, size.y2.failed))
+    print(t.test(size.y1.failed, size.y2.failed, alternative = 'less'))
+    print(t.test(size.y1.failed, size.y2.failed, alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
   
   # Remove data from stack
-  rm(roi.y1.failed, roi.y2.failed)
+  rm(size.y1.failed, size.y2.failed)
 }
 
 # RISULTATI
 ```
 
-A.2.ctd Does size change for a specific location (i.e. Tuscany,Lombardy,etc.)?
+A.2.ctd Does SIZE change for a specific location (i.e. Tuscany,Lombardy,etc.)?
 ```{r}
 # List of unique legal form values
 company.regions <- unique(aida.failed$`Registered.office.address.-.Region`)
@@ -239,20 +239,20 @@ table(aida.failed$`Registered.office.address.-.Region`)
 for(region.name in company.regions){
   print("**************************")
   print(region.name)
-  roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & 
-                                     aida.failed$`Registered.office.address.-.Region`==region.name ,'Size']
-  roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & 
-                                     aida.failed$`Registered.office.address.-.Region`==region.name ,'Size']
+  size.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & 
+                                     aida.failed$`Registered.office.address.-.Region`==region.name ,'Total.assetsth.EURLast.avail..yr']
+  size.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & 
+                                     aida.failed$`Registered.office.address.-.Region`==region.name ,'Total.assetsth.EURLast.avail..yr']
   
-  if( length(roi.y1.failed)>3 & length(roi.y2.failed)>3 ){
-    print(t.test(roi.y1.failed,roi.y2.failed))
-    print(t.test(roi.y1.failed,roi.y2.failed,alternative = 'less'))
-    print(t.test(roi.y1.failed,roi.y2.failed,alternative = 'greater'))
+  if( length(size.y1.failed)>3 & length(size.y2.failed)>3 ){
+    print(t.test(size.y1.failed,size.y2.failed))
+    print(t.test(size.y1.failed,size.y2.failed,alternative = 'less'))
+    print(t.test(size.y1.failed,size.y2.failed,alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
   
   # Remove data from stack
-  rm(roi.y1.failed,roi.y2.failed)
+  rm(size.y1.failed,size.y2.failed)
 }
 
 # RISULTATI
@@ -267,20 +267,22 @@ for(region.name in company.regions){
 ```{r}
 # import roi dcompany ata
 load("./dataset/aida.roi.RData") 
+aida <- aida.roi
+rm(aida.roi)
 
 #summary
-skim(aida.roi)
+skim(aida)
 
 #dataset
-head(aida.roi)
+head(aida)
 
 ```
 
-Filter roi of failed company for an interval of year
+Filter ROI of failed company for an interval of year
 ```{r}
 
-# Filtering ages of all failed companies
-aida.failed <- aida.roi[aida.roi$Failed=='Yes',]
+# Filtering roi of all failed companies
+aida.failed <- aida[aida$Failed=='Yes',]
 
 # We compare the distribution of roi if failed companies over two years
 table(aida.failed$Last.accounting.closing.date)
@@ -288,18 +290,14 @@ table(aida.failed$Last.accounting.closing.date)
 # Filtering roi of all failed companies over years
 aida.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 | aida.failed$Last.accounting.closing.date == 2018 ,]
 
-names(aida.failed)[names(aida.failed) == "Return.on.investment.(ROI).(%)%Last.avail..yr"] <- "Roi"
-
-
-rm(aida.roi)
+rm(aida)
 
 ```
 
-
-Density of roi of Failed Companies Over Years selected
+Density of ROI of Failed Companies Over Years selected
 ```{r}
 # density of roi of failed companies over years selected
-ggplot(data=aida.failed, aes(x=Roi, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
+ggplot(data=aida.failed, aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, group=as.factor(Last.accounting.closing.date), fill=as.factor(Last.accounting.closing.date))) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Roi of Failed Companies Over Time")
@@ -308,8 +306,8 @@ ggplot(data=aida.failed, aes(x=Roi, group=as.factor(Last.accounting.closing.date
 
 A.ctd Compare the distributions of ROI of failed companies over selected years
 ```{r}
-roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017,'Roi']
-roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018,'Roi']
+roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017,'Return.on.investment.(ROI).(%)%Last.avail..yr']
+roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018,'Return.on.investment.(ROI).(%)%Last.avail..yr']
 
 t.test(roi.y1.failed, roi.y2.failed)
 t.test(roi.y1.failed, roi.y2.failed, alternative = 'less')
@@ -333,8 +331,8 @@ table(aida.failed$Legal.form)
 for(form.name in company.forms){
   print("**************************")
   print(form.name)
-  roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & aida.failed$Legal.form==form.name ,'Roi']
-  roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & aida.failed$Legal.form==form.name ,'Roi']
+  roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & aida.failed$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
+  roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & aida.failed$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
   
   if( length(roi.y1.failed)>3 & length(roi.y2.failed)>3 ){
     print(t.test(roi.y1.failed, roi.y2.failed))
@@ -359,10 +357,10 @@ table(aida.failed$`Registered.office.address.-.Region`)
 for(region.name in company.regions){
   print("**************************")
   print(region.name)
-  roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & 
-                                     aida.failed$`Registered.office.address.-.Region`==region.name ,'Roi']
-  roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & 
-                                     aida.failed$`Registered.office.address.-.Region`==region.name ,'Roi']
+  roi.y1.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 & aida.failed$`Registered.office.address.-.Region`==region.name ,
+                               'Return.on.investment.(ROI).(%)%Last.avail..yr']
+  roi.y2.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2018 & aida.failed$`Registered.office.address.-.Region`==region.name ,
+                               'Return.on.investment.(ROI).(%)%Last.avail..yr']
   
   if( length(roi.y1.failed)>3 & length(roi.y2.failed)>3 ){
     print(t.test(roi.y1.failed,roi.y2.failed))
