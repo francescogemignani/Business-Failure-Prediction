@@ -83,7 +83,7 @@ age.sum <- cbind(not.failed=age.stat.yy[,1],
 Plot the distribution of failures knowing AGE in the specific year
 ```{r}
 tit <- paste("Year = 2018")
-barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)')
 plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
 plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
 ```
@@ -119,10 +119,12 @@ for(form.name in company.forms){
                    p.failed.knowing.age=cond.tab)
   
   #Print the distribution
-  tit <- paste("Year = 2018, Legal form = ",form.name)
-  barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-  plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-  plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+  if(nrow(aida.yy.form)>(nrow(aida.yy)*0.05)) {
+    tit <- paste("Year = 2018, Legal form = ",form.name)
+    barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+    plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+    plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+  }
 }
 
 ```
@@ -155,10 +157,12 @@ for(sector.name in company.sectors){
                    p.failed.knowing.age=cond.tab)
   
   #Print the distribution
-  tit <- paste("Year = 2018, ATECO Sector = ",sector.name)
-  barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-  plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-  plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+  if(nrow(aida.yy.sector)>(nrow(aida.yy)*0.1)) {
+    tit <- paste("Year = 2018, ATECO Sector = ",sector.name)
+    barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+    plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+    plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+  }
 }
 
 ```
@@ -191,50 +195,24 @@ for( region.name in company.regions){
                    p.failed.knowing.age=cond.tab)
   
   #Print the distribution
-  tit <- paste("Year = 2018, Region = ",region.name)
-  barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-  plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
-  plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+  if(nrow(aida.yy.region)>(nrow(aida.yy)*0.1)) {
+    tit <- paste("Year = 2018, Region = ",region.name)
+    barplot(age.sum[,4],main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+    plot(age.sum[,4],type = 'h',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+    plot(age.sum[,4],type = 'l',main = tit, xlab = 'Age', ylab = 'P(Failed=Yes | Age=x)' )
+  }
 }
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-
-# Number of observations in Age
-n.obs <- length(aida.yy$Age)
-sqrt(n.obs)
-# Compute the Freedman-Diaconis bin width
-fdw <- (2*IQR(aida.yy$Age)) / (n.obs^(1/3))
-
-# Compute the number of bins
-n.bins <- (max(aida.yy$Age) - min(aida.yy$Age)) / fdw
-n.bins <- as.integer(n.bins)
-
-table(cut(aida.yy$Age, breaks = n.bins))
-
 ```
 
 
 *################*
 *##### SIZE #####*
 *################*
-Company ages summary
+Company sizes summary
 ```{r}
-# Clean enviroment and import aida dataset for size
 rm(list = ls())
+
+# import aida dataset
 load("./dataset/aida.size.RData")
 aida<-aida.size
 rm(aida.size)
@@ -246,7 +224,175 @@ skim(aida)
 head(aida)
 ```
 
+Split Size in equal width bins using Freedman-Diaconis approach
+```{r}
 
+# We have selected year 2018 because it has the highest number of companies
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
+
+# Number of observations in size
+size <- aida.yy$Total.assetsth.EURLast.avail..yr
+n.obs <- length(size)
+
+# Compute the Freedman-Diaconis bin width for size
+fdw <- (2*IQR(size)) / (n.obs^(1/3))
+
+# Compute the number of bins
+n.bins <- as.integer((max(size) - min(size)) / fdw)+1
+
+
+```
+
+B.  What is the distribution of failures wrt SIZE of firms at a specific year?
+```{r}
+# At a specified year, the probability that a company is failed knowing its size
+
+# Add a column contain the interval
+aida.yy$Size.group <- cut(x=aida.yy$Total.assetsth.EURLast.avail..yr, breaks = n.bins)
+
+# Table for year 2018: size -> number of company failed and not failed 
+size.freq <- table(aida.yy[,c('Size.group','Failed')])
+
+# Compute the conditional probability P(Failed=Yes | Size=[a,b]) = P(Failed=Yes,Size=[a,b])/P(Size=[a,b])
+cond.tab <- (size.freq[,2] / (size.freq[,1]+size.freq[,2]) )
+
+# Combine <size,#companies active, #companies failed, #all companies, P(Failed=Yes | Size=size)>
+size.sum <- cbind(not.failed=size.freq[,1],
+                 failed=size.freq[,2],
+                 total=(size.freq[,1]+size.freq[,2]),
+                 p.failed.knowing.size=cond.tab)
+```
+
+Plot the distribution of failures knowing SIZE in the specific year
+```{r}
+tit <- paste("Year = 2018")
+
+barplot(size.sum[,4],main = tit, xlab = 'Total.assetsth.EURLast.avail..yr', ylab = 'P(Failed=Yes | Size=x)' )
+plot(size.sum[,4],type = 'h',main = tit, xlab = 'Total.assetsth.EURLast.avail..yr', ylab = 'P(Failed=Yes | Size=x)' )
+plot(size.sum[,4],type = 'l',main = tit, xlab = 'Total.assetsth.EURLast.avail..yr', ylab = 'P(Failed=Yes | Size=x)' )
+```
+
+B.1  Does SIZE change for a specific company form?
+```{r}
+# Nella domanda precedente ci è stato chiesto la probabilità che un'azienda sia fallita in base alla sua 
+# dimensione (nel 2018). Adesso vogliamo vedere se questa probabilità cambia in funzione del tipo di forma
+# societaria per cui è stata  costituita.
+
+# Filter all companies at specified year
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
+
+# Add the size group feature
+aida.yy$Size.group <- cut(x=aida.yy$Total.assetsth.EURLast.avail..yr, breaks = n.bins)
+
+# List of unique legal form values at specified year
+company.forms <- unique(aida.yy$Legal.form)
+table(aida.yy$Legal.form)
+
+for(form.name in company.forms){
+  # Filter all companies (at selected year) with a certain legal form
+  aida.yy.form <- aida.yy[aida.yy$Legal.form==form.name,]
+  
+  # Table for year 2018: group size -> number of company failed and not failed 
+  size.freq <- table(aida.yy.form[,c('Size.group','Failed')])
+
+  # Compute the conditional probability
+  cond.tab <- (size.freq[,2] / (size.freq[,1]+size.freq[,2]) )
+
+  # Combine <size group,#companies active, #companies failed, #all companies, P(Failed=Yes | Size=[a,b])>
+  size.sum <- cbind(not.failed=size.freq[,1],
+                   failed=size.freq[,2],
+                   total=(size.freq[,1]+size.freq[,2]),
+                   p.failed.knowing.size=cond.tab)
+  
+  #Print the distribution for only company forms which contain more than 10% of all companies at specified year
+  if(nrow(aida.yy.form)>(nrow(aida.yy)*0.1)) {
+    tit <- paste("Year = 2018, Legal form = ",form.name)
+    barplot(size.sum[,4],main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+    plot(size.sum[,4],type = 'h',main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+    plot(size.sum[,4],type = 'l',main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+  }
+}
+
+```
+
+B.2  Does SIZE change for a specific ATECO Sector?
+```{r}
+# Filter all companies at specified year
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
+
+# Add the size group feature
+aida.yy$Size.group <- cut(x=aida.yy$Total.assetsth.EURLast.avail..yr, breaks = n.bins)
+
+# List of sector values at specified year
+company.sectors <- unique(aida.yy$ATECO.Sector.Name)
+table(aida.yy$ATECO.Sector.Name)
+
+for(sector.name in company.sectors){
+  # Filter all companies (at selected year) with a certain sector
+  aida.yy.sector <- aida.yy[aida.yy$ATECO.Sector.Name==sector.name,]
+  
+  # Table for year 2018: group size -> number of company failed and not failed 
+  size.freq <- table(aida.yy.sector[,c('Size.group','Failed')])
+
+  # Compute the conditional probability
+  cond.tab <- (size.freq[,2] / (size.freq[,1]+size.freq[,2]) )
+
+  # Combine <size group,#companies active, #companies failed, #all companies, P(Failed=Yes | Size=[a,b])>
+  size.sum <- cbind(not.failed=size.freq[,1],
+                   failed=size.freq[,2],
+                   total=(size.freq[,1]+size.freq[,2]),
+                   p.failed.knowing.size=cond.tab)
+  
+  #Print the distribution for only company sector which contain more than 10% of all companies at specified year
+  if(nrow(aida.yy.sector)>(nrow(aida.yy)*0.1)) {
+    tit <- paste("Year = 2018, ATECO Sector = ",sector.name)
+    barplot(size.sum[,4],main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+    plot(size.sum[,4],type = 'h',main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+    plot(size.sum[,4],type = 'l',main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+  }
+}
+
+```
+
+B.3  Does SIZE change for a specific Location?
+```{r}
+# Filter all companies at specified year
+aida.yy <- aida[aida$Last.accounting.closing.date==2018,]
+
+# Add the size group feature
+aida.yy$Size.group <- cut(x=aida.yy$Total.assetsth.EURLast.avail..yr, breaks = n.bins)
+
+# List of unique region names at specified year
+company.regions <- unique(aida.yy$`Registered.office.address.-.Region`)
+table(aida.yy$`Registered.office.address.-.Region`)
+
+for(region.name in company.regions){
+  # Filter all companies (at selected year) with a certain region
+  aida.yy.region <- aida.yy[aida.yy$`Registered.office.address.-.Region` ==region.name,]
+  
+  # Table for year 2018: group size -> number of company failed and not failed 
+  size.freq <- table(aida.yy.region[,c('Size.group','Failed')])
+
+  # Compute the conditional probability
+  cond.tab <- (size.freq[,2] / (size.freq[,1]+size.freq[,2]) )
+
+  # Combine <size group,#companies active, #companies failed, #all companies, P(Failed=Yes | Size=[a,b])>
+  size.sum <- cbind(not.failed=size.freq[,1],
+                   failed=size.freq[,2],
+                   total=(size.freq[,1]+size.freq[,2]),
+                   p.failed.knowing.size=cond.tab)
+  
+  #Print the distribution for only company regions which contain more than 10% of all companies at specified year
+  if(nrow(aida.yy.region)>(nrow(aida.yy)*0.1)) {
+      tit <- paste("Year = 2018, Region = ",region.name)
+      barplot(size.sum[,4],main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+      plot(size.sum[,4],type = 'h',main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+      plot(size.sum[,4],type = 'l',main = tit, xlab = 'Size Group', ylab = 'P(Failed=Yes | Size=[a,b])' )
+  }
+}
+
+
+```
 
 
 
