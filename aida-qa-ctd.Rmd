@@ -18,7 +18,7 @@ rm(list=ls())
 wdir_fg = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
 wdir_ff = "C:/Users/falle/Documents/GitHub/Risk-of-Business-Failure"
 wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
-setwd(wdir_fg)
+setwd(wdir_ff)
 ```
 
 *########################################## QUESTION A CTD ################################################*
@@ -376,3 +376,129 @@ for(region.name in company.regions){
 # RISULTATI
 ```
 
+
+
+
+
+
+
+*################*
+*#### PROVA #####*
+*################*
+
+```{r}
+
+# Filtering ages of all failed companies
+aida.failed <- aida[aida$Failed=='Yes',]
+
+# We compare the distribution of age with failed companies over two years
+table(aida.failed$Last.accounting.closing.date)
+
+# Filtering ages of all failed companies over years
+aida.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 | aida.failed$Last.accounting.closing.date == 2018 |
+                                          aida.failed$Last.accounting.closing.date == 2016 | aida.failed$Last.accounting.closing.date == 2015,]
+
+
+rm(aida)
+```
+*###############*
+*##### AGE #####*
+*###############*
+
+A.ctd Compare the distributions of AGE of failed companies over selected years
+```{r}
+boxplot(Age~Last.accounting.closing.date, data=aida.failed)
+```
+```{r}
+# req: normality (Shapiro test si può fare su al massimo 5000 sample)
+tapply(aida.failed$Age[0:5000], aida.failed$Last.accounting.closing.date[0:5000], shapiro.test)
+```
+```{r}
+#No normalità delle distribuzioni e quindi non è possibile effettuare ANOVA test
+
+# Testing multiple samples: non-parametric test
+# Package SCMAMP: see https://github.com/b0rxa/scmamp
+# installation
+if (!require("devtools")) {
+  install.packages("devtools")
+}
+install.packages("cli")
+devtools::install_github("b0rxa/scmamp")
+library(scmamp)
+```
+
+
+```{r}
+table(aida.failed$Last.accounting.closing.date)
+```
+```{r}
+age.2015 = aida.failed[aida.failed$Last.accounting.closing.date==2015,]$Age[0:47000]
+age.2016 = aida.failed[aida.failed$Last.accounting.closing.date==2016,]$Age[0:47000]
+age.2017 = aida.failed[aida.failed$Last.accounting.closing.date==2017,]$Age[0:47000] 
+age.2018 = aida.failed[aida.failed$Last.accounting.closing.date==2018,]$Age[0:47000]
+```
+
+
+```{r}
+x <- data.frame("Age2015"=age.2015, "Age2016"=age.2016, "Age2017"=age.2017, "Age2018"=age.2018)
+plotDensities(data=x, size=1.1)
+```
+
+
+```{r}
+# Friedman non-parametric test
+friedmanTest(x)
+```
+```{r}
+# Post-hoc Nemenyi 
+test = nemenyiTest(x, alpha=0.05)
+test
+```
+```{r}
+test$diff.matrix
+abs(test$diff.matrix) > test$statistic # significant tests
+```
+```{r}
+plotCD(x, alpha=0.05, cex=1.25)
+```
+
+
+
+ctd Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
+
+```{r}
+boxplot(Age~Legal.form, data=aida.failed)
+```
+
+
+```{r}
+# List of unique legal form values
+#company.forms <- unique(aida.failed$Legal.form)
+
+company.forms <- names(which(table(aida.failed$Legal.form) > 3000))
+x <- data.frame("S.C.A.R.L."=c(1:3000))
+for(form in company.forms){
+  x[[form]] <- aida.failed[aida.failed$Legal.form==form,]$Age[0:3000]
+}
+
+plotDensities(data=x, size=1.1)
+
+```
+
+```{r}
+friedmanTest(x)
+```
+```{r}
+# Post-hoc Nemenyi 
+test = nemenyiTest(x, alpha=0.05)
+test
+```
+
+```{r}
+test$diff.matrix
+abs(test$diff.matrix) > test$statistic # significant tests
+```
+
+```{r}
+plotCD(x, alpha=0.05, cex=1.25)
+```
