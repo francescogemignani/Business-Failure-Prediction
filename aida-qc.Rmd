@@ -1,0 +1,169 @@
+---
+title: "Question C"
+output: html_notebook
+---
+
+Per fornire uno score di fallimento si sono provati i seguenti modelli:
+  - Logistic Regression
+  - Penalized Logistic Regression
+  - Elastic Net Regularization
+  
+Feature Selection:
+  1) rimozione di attributi correlati tra loro (> di una certa soglia)
+  2) procedura stepAIC per determinare il miglior sottoinsieme di attributi, 
+   AIC è una stima della bontà del modello (considera il model fit e la semplicità del modello)
+
+
+```{r}
+library(data.table)
+#install.packages("caret", dep = TRUE)
+library(caret)
+```
+
+```{r}
+aida = fread("aida_preproc.csv")
+
+# Make the operator
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+# Add new empty column
+aida$Failed <- NULL
+
+# For each 'Legal status' which contains 'Active' substring fill in new column 'No' else 'Yes'
+act_vector <- c('Active','Active (default of payments)','Active (receivership)')
+aida[aida$Legal.status %in% act_vector,'Failed'] <- 0
+aida[aida$Legal.status %!in% act_vector,'Failed'] <- 1
+
+aida[is.na(aida$Failed), ]
+aida$Failed <- as.factor(aida$Failed)
+
+drops <- c('Company.name','File','Tax.code.number','Legal.form','Legal.status','Comune.ISTAT.code','Region','Province')
+aida <- subset(aida, select = -c(Company.name,File,Tax.code.number,Legal.form,Legal.status,Comune.ISTAT.code,Region,Province))
+```
+
+```{r}
+
+#create subsample of the dataset
+sample = rbinom(nrow(aida), 1, .1)           
+data = aida[sample==1,]
+
+
+#dummies <- dummyVars( ~ ., data = data)
+#head(predict(dummies, newdata = data))
+```
+
+```{r}
+set.seed(42)
+trainIndex <- createDataPartition(data$Failed, p = .7, 
+                                  list = FALSE, 
+                                  times = 1)
+
+aidaTrain <- data[ trainIndex,]
+aidaTest  <- data[-trainIndex,]
+
+table(aidaTrain$Failed)
+```
+
+```{r}
+down.aidaTrain <- downSample(x = aidaTrain, y = aidaTrain$Failed)
+down.aidaTrain <- subset(down.aidaTrain, select = -c(Class))
+table(down.aidaTrain$Failed)  
+```
+
+
+Logistic regression con trainingset originale (leggermente sbilanciato)
+
+```{r}
+# resampling method
+noresampling = trainControl(method="none")
+
+lr.fit = train(Failed ~ ., data = na.omit(aidaTrain), 
+               method = "glmStepAIC", trControl=noresampling,
+               # pass-trough options
+               family=binomial(logit))
+lr.fit
+summary(lr.fit)
+```
+
+```{r}
+aidaTest = na.omit(aidaTest)
+
+# predicted confidence on validation set
+lr.pred = predict(lr.fit, newdata = aidaTest, type="raw")
+lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # as predict_proba in scikit-learn
+lr.pconf = lr.prob[,2]
+# built-in metrics
+confusionMatrix(lr.pred, aidaTest$Failed, positive="1", mode = "prec_recall")
+```
+
+```{r}
+# Brier score
+mean((lr.pconf - (as.numeric(aidaTest$Failed)-1))^2)
+```
+
+
+```{r}
+# calibration plot
+cal_data = calibration(aidaTest$Failed ~ lr.pconf, class="1")
+xyplot(cal_data)
+```
+
+```{r}
+table(na.omit(down.aidaTrain)$Failed)
+```
+Logistic regression con training set bilanciato con random undersampling
+```{r}
+# resampling method
+noresampling = trainControl(method="none")
+
+lr.fit = train(Failed ~ ., data = na.omit(down.aidaTrain), 
+               method = "glmStepAIC", trControl=noresampling,
+               # pass-trough options
+               family=binomial(logit))
+lr.fit
+summary(lr.fit)
+```
+
+```{r}
+aidaTest = na.omit(aidaTest)
+
+# predicted confidence on validation set
+lr.pred = predict(lr.fit, newdata = aidaTest, type="raw")
+lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # as predict_proba in scikit-learn
+lr.pconf = lr.prob[,2]
+# built-in metrics
+confusionMatrix(lr.pred, aidaTest$Failed, positive="1", mode = "prec_recall")
+```
+
+```{r}
+# using ROCR for metrics at cutoff
+library(ROCR)
+lr.prediction = prediction(lr.pconf, aidaTest$Failed)
+# acc at cutoff
+lr.acc = performance(lr.prediction, "acc"); plot(lr.acc)
+# tpr (recall) at cutoff
+lr.tpr = performance(lr.prediction, "tpr"); plot(lr.tpr)
+# f1 at cutoff
+lr.f1 = performance(lr.prediction, "f"); plot(lr.f1)
+# precision at cutoff
+lr.prec = performance(lr.prediction, "prec"); plot(lr.prec)
+# roc curve
+lr.roc = performance(lr.prediction, "tpr", "fpr")
+plot(lr.roc, colorize=T); abline(a=0, b= 1)
+```
+```{r}
+# AUC: performance returns an object whose members (called 'slots') are accessed with '@'
+o = performance(lr.prediction, "auc")
+o@y.values[[1]]
+```
+```{r}
+featurePlot(x=data.frame(lr.pconf), y=aidaTest$Failed, plot='density', auto.key = list(columns = 2))
+```
+
+Con decision threshold a 0.3 F1-score migliore (aumenta molto il valore di Recall)
+```{r}
+cutoff = 0.3
+lr.pred.cutoff = factor(ifelse(lr.pconf>=cutoff, 1, 0), levels=levels(aidaTest$Failed))
+confusionMatrix(lr.pred.cutoff, aidaTest$Failed, positive="1", mode = "prec_recall")
+```
+
