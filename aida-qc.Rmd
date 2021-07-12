@@ -15,9 +15,13 @@ Feature Selection:
 
 
 ```{r}
-library(data.table)
+library
 #install.packages("caret", dep = TRUE)
+library(lattice)
+library(ggplot2)
+library(data.table)
 library(caret)
+library(glmnet)
 ```
 
 ```{r}
@@ -198,6 +202,35 @@ Con decision threshold a 0.3 F1-score migliore (aumenta molto il valore di Recal
 cutoff = 0.3
 lr.pred.cutoff = factor(ifelse(lr.pconf>=cutoff, 1, 0), levels=levels(aidaTest$Failed))
 confusionMatrix(lr.pred.cutoff, aidaTest$Failed, positive="1", mode = "prec_recall")
+```
+
+Elastic Net Regularization using glmnet 
+```{r}
+aidaTrain <- na.omit(aidaTrain)
+x <- aidaTrain[, 1:(ncol(aidaTrain)-1)]
+y <- aidaTrain$Failed
+elasticFit <- cv.glmnet(data.matrix(x), y, family = "binomial", type.measure = 'mse', nfolds = 5) #returns the best model using CV 
+```
+
+```{r}
+plot(elasticFit)
+```
+
+lambda.min is the value of lambda that gives the minimum mean cross-validated error
+lambda.1se is the value of lambda that gives the most regularized model 
+```{r}
+print(elasticFit)
+```
+
+```{r}
+x.test <- aidaTest[, 1:(ncol(aidaTest)-1)]
+y.test <- aidaTest$Failed
+
+# predicted confidence on validation set
+elas.pred = predict(elasticFit, newx = data.matrix(x.test), type="class")
+elas.prob = predict(elasticFit, newx = data.matrix(x.test), type="response") #as predict proba
+# built-in metrics
+confusionMatrix(data.matrix(elas.pred), data.matrix(y.test), positive="1", mode = "prec_recall")
 ```
 
 Logistic Regression usando cross validation con custom summary function
