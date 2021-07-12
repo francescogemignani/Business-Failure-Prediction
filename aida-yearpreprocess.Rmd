@@ -8,6 +8,7 @@ output: html_notebook
 ```{r}
 #install.packages("data.table") 
 library(data.table)
+library(skimr) 
 ```
 
 Import & Setup AIDA dataset
@@ -170,8 +171,6 @@ for (row in 1:nrow(aida)){
 
 }
 ```
-
-
 ```{r}
 new.aida <- rbindlist(list, use.names=FALSE)
 colnames(new.aida) = c("Year",
@@ -212,7 +211,7 @@ colnames(new.aida) = c("Year",
 ```
 
 ```{r}
-#Restore all factor and character variables
+# L'assolutizzazione del dataset ha fatto perdere i tipi di alcune features, quindi li ripristino
 aida[aida$Legal.form == "",c('Legal.form')] <- NA
 aida$Legal.form <- as.factor(aida$Legal.form)
 aida$ATECO.2007code <- as.factor(aida$ATECO.2007code)
@@ -225,11 +224,12 @@ aida$Company.name <- as.character(aida$Company.name)
 aida$Tax.code.number <- as.character(aida$Tax.code.number)
 aida$File <- as.character(aida$File)
 
-save(aida, file="aida-abs.RData") # R binary format
+# Esporto il dataset in formato binario
+save(aida, file="aida-abs.RData")
 ```
 
 ```{r}
-load(file = "./dataset/aida-abs.RData")
+#load(file = "/Users/francescogemignani/Google Drive/SMD/aida-abs.RData")
 skim(aida)
 ```
 
