@@ -26,7 +26,7 @@ library(glmnet)
 ```
 
 ```{r}
-aida = fread("aida_preproc.csv")
+aida = fread("../aida_preproc.csv")
 
 # Make the operator
 '%!in%' <- function(x,y)!('%in%'(x,y))
@@ -42,20 +42,40 @@ aida[aida$Legal.status %!in% act_vector,'Failed'] <- 1
 aida[is.na(aida$Failed), ]
 aida$Failed <- as.factor(aida$Failed)
 
-drops <- c('Company.name','File','Tax.code.number','Legal.form','Legal.status','Comune.ISTAT.code','Region','Province')
-aida <- subset(aida, select = -c(Company.name,ATECO.2007code,File,Tax.code.number,Legal.form,Legal.status,Comune.ISTAT.code,Region,Province))
+#drops <- c('Company.name','File','Tax.code.number','Legal.form','Legal.status','Comune.ISTAT.code','Region','Province')
+#aida <- subset(aida, select = -c(Company.name,ATECO.2007code,File,Tax.code.number,Legal.form,Legal.status,Comune.ISTAT.code,Region,Province))
 ```
 
 ```{r}
 #create subsample of the dataset
-sample = rbinom(nrow(aida), 1, .5)           
+sample = rbinom(nrow(aida), 1, .1)           
 data = aida[sample==1,]
 
+order = data[order(data$Company.name)]
+View(order[1:100,])
 #data = aida[aida$Year==2016, ]
 
 #dummies <- dummyVars( ~ ., data = data)
 #head(predict(dummies, newdata = data))
 ```
+
+```{r}
+order$Age <- NA
+unique.names = unique(order[order$Failed==1]$Company.name)
+
+for(name in unique.names){
+  rows = order[order$Company.name == name]
+  last.year = max(rows$Year)
+  
+  order$Failed[order$Company.name == name & order$Year != last.year] = 0
+  #print(last.year)
+
+
+}
+
+```
+```
+
 
 
 1) Un problema dei modelli lineari è l'alta correlazione tra le variabili indipendenti,
