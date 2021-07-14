@@ -225,3 +225,86 @@ confusionMatrix(elas.2018.pred.cutoff, aida.2018$Failed, positive="1", mode = "p
 ```
 
 Training a new classifier on the data coming from 2018 
+```{r}
+aida.2018 <- subset(aida, Year=2018, select = -c(Year)) #extract from the dataset only values regarding 2018
+```
+
+Removing correlated values, using 0.8 as cutoff
+```{r}
+corr.matrix=cor(subset(na.omit(aida.2018), select = -c(Failed)))
+#corr.matrix[abs(corr.matrix) < 0.8] = NA
+#View(corr.matrix)
+to.remove = findCorrelation(corr.matrix, cutoff = .8, verbose = TRUE, names=TRUE)
+to.remove
+aida.2018 = subset(aida.2018, select = -c(ROA, Number.of.employees, Cash.Flowth, Liquidity.ratio))
+```
+
+Split the data 
+```{r}
+set.seed(42)
+trainIndex <- createDataPartition(aida.2018$Failed, p = .7, 
+                                  list = FALSE, 
+                                  times = 1)
+
+aidaTrain.2018 <- aida.2018[ trainIndex,]
+aidaTest.2018  <- aida.2018[-trainIndex,]
+
+table(aidaTrain.2018$Failed)
+```
+
+```{r}
+table(aidaTrain.2018$Failed)
+#No need to undersample/oversample the data because the proportion is more or less 1:3, so not really unbalanced 
+```
+
+Train classifier
+```{r}
+x <- aidaTrain.2018[, 1:(ncol(aidaTrain.2018)-1)]
+y <- aidaTrain.2018$Failed
+elasticFit.2018 <- cv.glmnet(data.matrix(x), y, family = "binomial", type.measure = 'mse', nfolds = 5) #returns the best model using CV 
+```
+
+lambda.min is the value of lambda that gives the minimum mean cross-validated error
+lambda.1se is the value of lambda that gives the most regularized model 
+```{r}
+plot(elasticFit.2018)
+```
+
+Using LAMBDA.MIN (best)
+```{r}
+x.test <- aidaTest.2018[, 1:(ncol(aidaTest.2018)-1)]
+y.test <- aidaTest.2018$Failed
+
+# predicted confidence on validation set
+elas.pred.2018 = predict(elasticFit.2018, newx = data.matrix(x.test), type="class", s = "lambda.min")
+elas.prob.2018 = predict(elasticFit.2018, newx = data.matrix(x.test), type="response", s = "lambda.min") #as predict proba
+# built-in metrics
+confusionMatrix(factor(elas.pred.2018), factor(y.test), positive="1", mode = "prec_recall")
+
+```
+
+```{r}
+# using ROCR for metrics at cutoff
+library(ROCR)
+elas.prediction.2018 = prediction(elas.prob.2018, aidaTest.2018$Failed)
+# acc at cutoff
+elas.acc.2018 = performance(elas.prediction.2018, "acc"); plot(elas.acc.2018, main = "Accuracy for lambda.min")
+# tpr (recall) at cutoff
+elas.tpr.2018 = performance(elas.prediction.2018, "tpr"); plot(elas.tpr.2018, main = "TPR for lambda.min")
+# f1 at cutoff
+elas.f1.2018 = performance(elas.prediction.2018, "f"); plot(elas.f1.2018, main = "F1 for lambda.min")
+# precision at cutoff
+elas.prec.2018 = performance(elas.prediction.2018, "prec"); plot(elas.prec.2018, main = "Precision for lambda.min")
+# roc curve
+elas.roc.2018 = performance(elas.prediction.2018, "tpr", "fpr")
+plot(elas.roc.2018, colorize=T, main = "AUC for lambda.min"); abline(a=0, b= 1)
+cat("AUC value: ", performance(elas.prediction.2018, "auc")@y.values[[1]])
+```
+
+Set cutoff to 0.2 (as we can see from the charts above)
+```{r}
+cutoff = 0.25
+elas.pred.cutoff.2018 = factor(ifelse(elas.prob.2018>=cutoff, 1, 0), levels=levels(aidaTest.2018$Failed))
+confusionMatrix(elas.pred.cutoff.2018, aidaTest.2018$Failed, positive="1", mode = "prec_recall")
+```
+
