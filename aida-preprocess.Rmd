@@ -25,7 +25,7 @@ rm(list=ls())
 
 # working dir
 wdir_fg = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
-wdir_ff = "C:/Users/falle/Documents/GitHub/Risk-of-Business-Failure"
+wdir_ff = "C:/Users/francesco/Documents/GitHub/Risk-of-Business-Failure"
 wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
 setwd(wdir_ff)
 
@@ -33,7 +33,8 @@ setwd(wdir_ff)
 #df = fread("aida_preproc.csv") 
 
 # import aida dataset
-load(file="aida.RData")
+#load(file="aida.RData")
+aida = fread("aida_abs.csv")
 
 # For each attribute name, replace all white space whit dot symbol
 colnames(aida) <- gsub(" ",".",colnames(aida))
@@ -73,8 +74,19 @@ aida$Failed <- as.factor(aida$Failed)
 table(aida$Failed)*100/nrow(aida)
 ```
 
+
 ATECO.Sector.Name
 ```{r}
+#Aida Sector name Correction
+aida$ATECO.2007code <- as.character(aida$ATECO.2007code)
+
+to.modify5=nchar(as.character(aida$ATECO.2007code))==5
+to.modify1=nchar(as.character(aida$ATECO.2007code))==1
+
+aida[to.modify1]$ATECO.2007code = sub("^", "000000", aida[to.modify1]$ATECO.2007code)
+aida[to.modify5]$ATECO.2007code = sub("^", "0", aida[to.modify5]$ATECO.2007code)
+
+
 # Add a column with the respective ISTAT sector of the company. In particular first two digits of ATECO 2007code identify the company sector which is an upper case character that began to [A-U] alphabetical range.
 
 #Delete record with ADECO code null (18327)
@@ -111,6 +123,7 @@ rm(istat.sectors.map)
 # https://www.istat.it/it/archivio/17888
 # http://www.fr.camcom.gov.it/sites/default/files/cciaa/RinnovoConsiglio/ateco-2007-struttura.pdf
 ```
+
 
 Legal Form
 ```{r}
