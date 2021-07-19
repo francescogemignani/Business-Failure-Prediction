@@ -13,17 +13,11 @@ library(forcats)
 
 # clean all
 rm(list=ls())
-
-# working dir
-wdir_fg = "/Users/francescogemignani/Google Drive/SMD/_Risk-of-business-failure/git"
-wdir_ff = "C:/Users/falle/Documents/GitHub/Risk-of-Business-Failure"
-wdir_sc = "/Users/samuele/University/2.SMD/Risk-of-Business-Failure"
-setwd(wdir_fg)
 ```
 
 
 *########################################## QUESTION A ################################################*
-*A.  Compare the distributions of age/size/roi between failed and active companies at a specific year*
+*A.  Compare the distributions of age/size between failed and active companies at a specific year*
 *A.1 Does it change for a specific company form (i.e. SPA,SRL,etc)?*
 *A.2 Does it change for a specific industry sector (see ATECO sectors)?*
 *######################################################################################################*
@@ -34,84 +28,121 @@ setwd(wdir_fg)
 Company ages summary
 ```{r}
 # import aida dataset
-load("./dataset/aida.age.RData") # reload energy dataset
-aida <- aida.age
+load("./dataset/aida.age.RData")
+df <- aida.age
+df <- as.data.frame(df)
 rm(aida.age)
 
 #summary
-skim(aida)
+skim(df)
 
 #dataset
-head(aida)
+head(df)
 ```
 
-Filter ages of all companies for a specific year (2018)
+Filter ages of all companies for a specific year
 ```{r}
-# We have selected year equal to 2018 to compare age because it has the highest number of samples
-table(aida$Last.accounting.closing.date)
+# We have selected year equal to 2018 to compare age because it has the a lot of samples (not the higher)
+table(df$Year)
 
 # Filtering
-aida.yy <- aida[aida$Last.accounting.closing.date == 2018,]
+df.yy <- df[df$Year == 2018,]
+table(df.yy$Failed)
 
-rm(aida)
+rm(df)
 ```
 
 Some plots of Age in Year 2018
 ```{r}
-
-##### AGE
 # histogram of age between failed and active companies at year 2018
-ggplot(data = aida.yy) + 
+ggplot(data = df.yy) + 
   geom_histogram(mapping=aes(x=Age, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
     scale_fill_manual(values=c("#69b3a2", "#404080"))+
     theme_ipsum() +
     labs(fill='Failed') + 
-    ggtitle("Histogram of Company ages in 2018")
+    ggtitle("Histogram of Company ages in 2017")
 
 # density of age between failed and active companies at year 2018
-ggplot(data=aida.yy, aes(x=Age, group=Failed, fill=Failed)) +
+ggplot(data=df.yy, aes(x=Age, group=Failed, fill=Failed)) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
-    ggtitle("Density of Company ages in 2018")
+    ggtitle("Density of Company ages in 2017")
 
 ```
 
-A. Compare the distributions of AGE between failed and active companies at a specific year (2018)
+A. Compare the distributions of AGE between failed and active companies at a specificied year
 ```{r}
-age.yy.active <- aida.yy[aida.yy$Failed=='No','Age']
-age.yy.failed <- aida.yy[aida.yy$Failed=='Yes','Age']
+# Età delle aziende attive e fallite
+age.yy.active <- df.yy[df.yy$Failed=='No','Age']
+age.yy.failed <- df.yy[df.yy$Failed=='Yes','Age']
+table(df.yy$Failed)*100/nrow(df.yy)
 
+# Il ks test ritorna che le due distribuzioni sono differenti
 ks_res = ks.test(age.yy.active,age.yy.failed)
 ks_res
 
+# Il test restituisce un p-value =1  nell'ipotesi alternativa 'greater'. Ciò indica che la media dell'età delle aziende attive è superiore alla media dell'età delle aziende fallite. Quindi, nel 2018, le aziende attive sono in media più vecchie di quelle fallite.
 t.test(age.yy.active,age.yy.failed)
 t.test(age.yy.active,age.yy.failed,alternative = 'less')
 t.test(age.yy.active,age.yy.failed,alternative = 'greater')
 
+# NOTA: Il ks-test e il t-test sono coerenti con la considerazione che le distribuzioni sono differenti
 
 # Remove data from stack
 rm(age.yy.active,age.yy.failed)
-
-# RISULTATO
-# Il p-value dell'ipotesi nulla non è significativo perchè è molto basso. Di conseguenza scarto l'ipotesi nulle e considero solo quelle bilaterali, in particolare
-# l'ipotesi bilateriale superiore. In tal caso il p-value è pari a 1, e questo ci porta ad accettare l'ipotesi bilaterale superiore, ovvero che la media dell'età
-# dell'età delle aziende attive è superiore alla media delle età delle aziende fallite (nel 2018).  
-# Quindi nel 2018 le aziende attive sono più vecchie di quelle fallite
 ```
 
 A.1 Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(aida.yy$Legal.form)
-table(aida.yy$Legal.form)
+company.forms <- unique(df.yy$Legal.form)
+table(df.yy$Legal.form)
 
 for(form.name in company.forms){
-  print("**************************")
+  print("**************")
   print(form.name)
-  age.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$Legal.form==form.name ,'Age']
-  age.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$Legal.form==form.name ,'Age']
+  print("**************")
   
-  if( length(age.yy.active)>3 & length(age.yy.failed)>3 ){
+  age.yy.active <- df.yy[df.yy$Failed=='No' & df.yy$Legal.form==form.name ,'Age']
+  age.yy.failed <- df.yy[df.yy$Failed=='Yes'& df.yy$Legal.form==form.name ,'Age']
+
+  if( length(age.yy.active)>100 & length(age.yy.failed)>100){
+   
+    #print(ks.test(age.yy.active,age.yy.failed))
+
+    print(t.test(age.yy.active,age.yy.failed))
+    print(t.test(age.yy.active,age.yy.failed,alternative = 'less'))
+    print(t.test(age.yy.active,age.yy.failed,alternative = 'greater'))
+    }
+  else print("Non ci sono abbastanza osservazioni")
+
+  print("")
+  print("")
+  print("")
+  print("")
+  
+  # Remove data from stack
+  rm(age.yy.active,age.yy.failed)
+}
+```
+
+A.2 Does AGE change for a specific industry sector (see ATECO sectors)?
+```{r}
+# List of unique company sector names
+company.sectors <- unique(df.yy$ATECO.Sector.Name)
+table(df.yy$ATECO.Sector.Name)
+
+for(sector.name in company.sectors){
+  print("**************")
+  print(sector.name)
+  print("**************")
+  
+  age.yy.active <- df.yy[df.yy$Failed=='No' & df.yy$ATECO.Sector.Name==sector.name ,'Age']
+  age.yy.failed <- df.yy[df.yy$Failed=='Yes'& df.yy$ATECO.Sector.Name==sector.name ,'Age']
+  
+  if( length(age.yy.active)>100 & length(age.yy.failed)>100 ){
+    
+    #print(ks.test(age.yy.active,age.yy.failed))
     
     print(t.test(age.yy.active,age.yy.failed))
     print(t.test(age.yy.active,age.yy.failed,alternative = 'less'))
@@ -124,32 +155,6 @@ for(form.name in company.forms){
 }
 ```
 
-A.2 Does AGE change for a specific industry sector (see ATECO sectors)?
-```{r}
-# List of unique company sector names
-company.sectors <- unique(aida.yy$ATECO.Sector.Name)
-table(aida.yy$ATECO.Sector.Name)
-
-for(sector.name in company.sectors){
-  print("**************************")
-  print(sector.name)
-  age.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$ATECO.Sector.Name==sector.name ,'Age']
-  age.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$ATECO.Sector.Name==sector.name ,'Age']
-  
-  if( length(age.yy.active)>3 & length(age.yy.failed)>3 ){
-    print(t.test(age.yy.active,age.yy.failed))
-    print(t.test(age.yy.active,age.yy.failed,alternative = 'less'))
-    print(t.test(age.yy.active,age.yy.failed,alternative = 'greater'))
-    }
-  else print("Non ci sono abbastanza osservazioni")
-  
-  # Remove data from stack
-  rm(age.yy.active,age.yy.failed)
-}
-
-rm(aida.yy)
-```
-
 *################*
 *##### SIZE #####*
 *################*
@@ -157,32 +162,34 @@ Company sizes summary
 ```{r}
 # import aida dataset
 rm(list = ls())
-load("./dataset/aida.size.RData") # reload energy dataset
-aida <- aida.size
+load("./dataset/aida.size.RData")
+df <- aida.size
+df <- as.data.frame(df)
 rm(aida.size)
 
 #summary
-skim(aida)
+skim(df)
 
 #dataset
-head(aida)
+head(df)
 ```
 
-Filter sizes of all companies for a specific year (2018)
+Filter sizes of all companies for a specific year
 ```{r}
-# We have selected year equal to 2018 to compare size because it has the highest number of samples
-table(aida$Last.accounting.closing.date)
+# We have selected year equal to 2018 to compare age because it has the a lot of samples (not the higher)
+table(df$Year)
 
 # Filtering
-aida.yy <- aida[aida$Last.accounting.closing.date == 2018,]
+df.yy <- df[df$Year == 2018,]
+table(df.yy$Failed)
 
-rm(aida)
+rm(df)
 ```
 
 Some plots of Size in Year 2018
 ```{r}
 # density of Size between failed and active companies at year 2018
-ggplot(data=aida.yy, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, fill=Failed)) +
+ggplot(data=df.yy, aes(x=Total.assetsth, group=Failed, fill=Failed)) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Company Sizes in 2018")
@@ -191,37 +198,52 @@ ggplot(data=aida.yy, aes(x=Total.assetsth.EURLast.avail..yr, group=Failed, fill=
 
 A. Compare the distributions of SIZE between failed and active companies at a specific year (2018)
 ```{r}
-size.yy.active <- aida.yy[aida.yy$Failed=='No','Total.assetsth.EURLast.avail..yr']
-size.yy.failed <- aida.yy[aida.yy$Failed=='Yes','Total.assetsth.EURLast.avail..yr']
+# Dimensione delle aziende attive e fallite
+size.yy.active <- df.yy[df.yy$Failed=='No','Total.assetsth']
+size.yy.failed <- df.yy[df.yy$Failed=='Yes','Total.assetsth']
+table(df.yy$Failed)
 
+# Il ks test ritorna che le due distribuzioni sono differenti
+ks_res = ks.test(size.yy.active,size.yy.failed)
+ks_res
+
+# Il test restituisce un p-value =1  nell'ipotesi alternativa 'less'. Ciò indica che la media delle dimensioni delle aziende attive è superiore alla media delle dimensioni delle aziende fallite. Cioè, le aziende attive hanno una dimensione maggiore di quelle fallite nel 2018.
 t.test(size.yy.active,size.yy.failed)
 t.test(size.yy.active,size.yy.failed,alternative = 'less')
 t.test(size.yy.active,size.yy.failed,alternative = 'greater')
 
 # Remove data from stack
 rm(size.yy.active,size.yy.failed)
-
-# RISULTATO
 ```
 
 A.1 Does SIZE change for a specific company form (i.e. SPA,SRL,etc)?
 ```{r}
 # List of unique legal form values
-company.forms <- unique(aida.yy$Legal.form)
-table(aida.yy$Legal.form)
+company.forms <- unique(df.yy$Legal.form)
+table(df.yy$Legal.form)
 
 for(form.name in company.forms){
-  print("**************************")
+  print("**************")
   print(form.name)
-  size.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
-  size.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$Legal.form==form.name ,'Total.assetsth.EURLast.avail..yr']
+  print("**************")
   
-  if( length(size.yy.active)>3 & length(size.yy.failed)>3 ){
+  size.yy.active <- df.yy[df.yy$Failed=='No' & df.yy$Legal.form==form.name ,'Total.assetsth']
+  size.yy.failed <- df.yy[df.yy$Failed=='Yes'& df.yy$Legal.form==form.name ,'Total.assetsth']
+  
+  if( length(size.yy.active)>100 & length(size.yy.failed)>100 ){
+
+    #print(ks.test(age.yy.active,age.yy.failed))    
+    
     print(t.test(size.yy.active,size.yy.failed))
     print(t.test(size.yy.active,size.yy.failed,alternative = 'less'))
     print(t.test(size.yy.active,size.yy.failed,alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
+
+  print("")
+  print("")
+  print("")
+  print("")
   
   # Remove data from stack
   rm(size.yy.active,size.yy.failed)
@@ -231,140 +253,33 @@ for(form.name in company.forms){
 A.2 Does SIZE change for a specific industry sector (see ATECO sectors)?
 ```{r}
 # List of unique legal form values
-company.sectors <- unique(aida.yy$ATECO.Sector.Name)
-table(aida.yy$ATECO.Sector.Name)
+company.sectors <- unique(df.yy$ATECO.Sector.Name)
+table(df.yy$ATECO.Sector.Name)
 
 for(sector.name in company.sectors){
-  print("**************************")
+  print("**************")
   print(sector.name)
-  size.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth.EURLast.avail..yr']
-  size.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth.EURLast.avail..yr']
+  print("**************")
   
-  if( length(size.yy.active)>3 & length(size.yy.failed)>3 ){
+  size.yy.active <- df.yy[df.yy$Failed=='No' & df.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth']
+  size.yy.failed <- df.yy[df.yy$Failed=='Yes'& df.yy$ATECO.Sector.Name==sector.name ,'Total.assetsth']
+  
+  if( length(size.yy.active)>100 & length(size.yy.failed)>100 ){
+    
+    #print(ks.test(size.yy.active,size.yy.failed))
+    
     print(t.test(size.yy.active,size.yy.failed))
     print(t.test(size.yy.active,size.yy.failed,alternative = 'less'))
     print(t.test(size.yy.active,size.yy.failed,alternative = 'greater'))
     }
   else print("Non ci sono abbastanza osservazioni")
   
+  print("")
+  print("")
+  print("")
+  print("")
+  
   # Remove data from stack
   rm(size.yy.active,size.yy.failed)
 }
-
-rm(aida.yy)
 ```
-
-
-*###############*
-*##### ROI #####*
-*###############*
-Company rois summary
-```{r}
-# import aida dataset
-rm(list = ls())
-load("./dataset/aida.roi.RData") # reload energy dataset
-aida <- aida.roi
-rm(aida.roi)
-
-#summary
-skim(aida)
-
-#dataset
-head(aida)
-```
-
-Filter rois of all companies for a specific year (2018)
-```{r}
-# We have selected year equal to 2018 to compare roi because it has the highest number of samples
-table(aida$Last.accounting.closing.date)
-
-# Filtering
-aida.yy <- aida[aida$Last.accounting.closing.date == 2018,]
-
-rm(aida)
-```
-
-Some plots of ROI in Year 2018
-```{r}
-# histogram of ROI between failed and active companies at year 2018
-ggplot(data = aida.yy) + 
-  geom_histogram(mapping=aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, fill=Failed),binwidth = 2,color="#e9ecef", alpha=0.6, position = 'identity') +
-    scale_fill_manual(values=c("#69b3a2", "#404080"))+
-    theme_ipsum() +
-    labs(fill='Failed') + 
-    ggtitle("Histogram of Company ROIs in 2018")
-
-
-# density of ROI between failed and active companies at year 2018
-ggplot(data=aida.yy, aes(x=`Return.on.investment.(ROI).(%)%Last.avail..yr`, group=Failed, fill=Failed)) +
-    geom_density(adjust=1.5, alpha=.4) +
-    theme_ipsum() + 
-    ggtitle("Density of Company ROIs in 2018")
-```
-
-A. Compare the distributions of ROI between failed and active companies at a specific year (2018)
-```{r}
-roi.yy.active <- aida.yy[aida.yy$Failed=='No','Return.on.investment.(ROI).(%)%Last.avail..yr']
-roi.yy.failed <- aida.yy[aida.yy$Failed=='Yes','Return.on.investment.(ROI).(%)%Last.avail..yr']
-
-t.test(roi.yy.active,roi.yy.failed)
-t.test(roi.yy.active,roi.yy.failed,alternative = 'less')
-t.test(roi.yy.active,roi.yy.failed,alternative = 'greater')
-
-# Remove data from stack
-rm(roi.yy.active,roi.yy.failed)
-
-# RISULTATO
-```
-
-A.1 Does ROI change for a specific company form (i.e. SPA,SRL,etc)?
-```{r}
-# List of unique legal form values
-company.forms <- unique(aida.yy$Legal.form)
-table(aida.yy$Legal.form)
-
-for(form.name in company.forms){
-  print("**************************")
-  print(form.name)
-  roi.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
-  roi.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$Legal.form==form.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
-  
-  if( length(roi.yy.active)>3 & length(roi.yy.failed)>3 ){
-    print(t.test(roi.yy.active,roi.yy.failed))
-    print(t.test(roi.yy.active,roi.yy.failed,alternative = 'less'))
-    print(t.test(roi.yy.active,roi.yy.failed,alternative = 'greater'))
-    }
-  else print("Non ci sono abbastanza osservazioni")
-  
-  # Remove data from stack
-  rm(roi.yy.active,roi.yy.failed)
-}
-```
-
-A.2 Does ROI change for a specific industry sector (see ATECO sectors)?
-```{r}
-# List of unique legal form values
-company.sectors <- unique(aida.yy$ATECO.Sector.Name)
-table(aida.yy$ATECO.Sector.Name)
-
-for(sector.name in company.sectors){
-  print("**************************")
-  print(sector.name)
-  roi.yy.active <- aida.yy[aida.yy$Failed=='No' & aida.yy$ATECO.Sector.Name==sector.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
-  roi.yy.failed <- aida.yy[aida.yy$Failed=='Yes'& aida.yy$ATECO.Sector.Name==sector.name ,'Return.on.investment.(ROI).(%)%Last.avail..yr']
-  
-  if( length(roi.yy.active)>3 & length(roi.yy.failed)>3 ){
-    print(t.test(roi.yy.active,roi.yy.failed))
-    print(t.test(roi.yy.active,roi.yy.failed,alternative = 'less'))
-    print(t.test(roi.yy.active,roi.yy.failed,alternative = 'greater'))
-    }
-  else print("Non ci sono abbastanza osservazioni")
-  
-  # Remove data from stack
-  rm(roi.yy.active,roi.yy.failed)
-}
-
-rm(aida.yy)
-```
-
-

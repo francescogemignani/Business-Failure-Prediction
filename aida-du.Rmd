@@ -1,0 +1,148 @@
+---
+title:    "Risk of Business Failure - Pre-Process Question A, A.ctd, B"
+students: F.Gemignani, S.Cucchi, F.Falleni
+output:   aida-du.nb.html
+---
+
+Libraries
+```{r}
+# install.packages("sjmisc")
+# devtools::install_github("ropensci/skimr")
+
+library(skimr)       
+library(ggplot2)      
+library(hrbrthemes)   
+library(forcats)      
+library(plyr)        
+```
+
+Import & Setup AIDA dataset
+```{r}
+# importo il dataset aida
+rm(list=ls())
+aida.path <- "./dataset/aida.RData"
+load(file=aida.path)
+
+# Attribute renaming: sostituisco gli spazzi bianchi con il dot
+colnames(aida) <- gsub(" ",".",colnames(aida))
+```
+
+Summary
+```{r}
+skim(aida)
+```
+
+Failed
+```{r}
+# Add 'Failed' feature to AIDA dataset. It describe if a company is failed or not regardless of the cause. In particular a company with Legal status no active has marked with Failed = Yes,,
+# otherwise Failed = No when has labeled as Active.
+
+# Missing values don't occour
+aida[is.na(aida$Legal.status),]
+
+# Table of Legal status
+table(aida$Legal.status)*100/nrow(aida)
+
+# Make the operator
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+# Add new empty column
+aida$Failed <- NULL
+
+# For each 'Legal status' which contains 'Active' substring fill in new column 'No' else 'Yes'
+act_vector <- c('Active','Active (default of payments)','Active (receivership)')
+aida[aida$Legal.status %in% act_vector,'Failed'] <- 'No'
+aida[aida$Legal.status %!in% act_vector,'Failed'] <- 'Yes'
+
+aida[is.na(aida$Failed), ]
+aida$Failed <- as.factor(aida$Failed)
+
+# Failed info
+table(aida$Failed)*100/nrow(aida)
+```
+
+ATECO.Sector.Name
+```{r}
+# Add a column with the respective ISTAT sector of the company. In particular first two digits of ATECO 2007code identify the company sector which is an upper case character that began to [A-U] alphabetical range.
+
+#Delete record with ADECO code null (18327)
+aida <- aida[!is.na(aida$ATECO.2007code),]
+
+# Add the attribute 'ATECO.Sector.Code' which contain the characters of the sector identified by the first two ATECO 2007 code digits.
+aida$ATECO.Sector.Code <- NULL
+aida$ATECO.Sector.Code <- substr(aida$ATECO.2007code, 0, 2)
+
+# Make a dataframe called istat.sectors.map, which contains two features:
+# 1. ATECO.Sector.Code: first two digits of 'ATECO 2007code'
+# 2. ATECO.Sector.Name: the respective sector name of that ATECO.Sector.Code
+# Istat sectors can be found in https://www.istat.it/it/archivio/17888
+
+ATECO.Sector.Code <- c('01', '02', '03', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '35', '36', '37', '38', '39', '41', '42', '43', '45', '46', '47', '49', '50', '51', '52', '53', '55', '56', '58', '59', '60', '61', '62', '63', '64', '65', '66', '68', '69', '70', '71', '72', '73', '74', '75', '77', '78', '79', '80', '81', '82', '84', '85', '86', '87', '88', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '00')
+
+ATECO.Sector.Name <- c('A', 'A', 'A', 'B', 'B', 'B', 'B', 'B', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'D', 'E', 'E', 'E', 'E', 'F', 'F', 'F', 'G', 'G', 'G', 'H', 'H', 'H', 'H', 'H', 'I', 'I', 'J', 'J', 'J', 'J', 'J', 'J', 'K', 'K', 'K', 'L', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'N', 'N', 'N', 'N', 'N', 'N', 'O', 'P', 'Q', 'Q', 'Q', 'R', 'R', 'R', 'R', 'S', 'S', 'S', 'T', 'T','U', 'no.sector')
+
+ATECO.Sector.Description <- c('AGRICOLTURA, SILVICOLTURA E PESCA', 'AGRICOLTURA, SILVICOLTURA E PESCA', 'AGRICOLTURA, SILVICOLTURA E PESCA','ESTRAZIONE DI MINERALI DA CAVE E MINIERE', 'ESTRAZIONE DI MINERALI DA CAVE E MINIERE', 'ESTRAZIONE DI MINERALI DA CAVE E MINIERE', 'ESTRAZIONE DI MINERALI DA CAVE E MINIERE', 'ESTRAZIONE DI MINERALI DA CAVE E MINIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'ATTIVITÀ MANIFATTURIERE', 'FORNITURA DI ENERGIA ELETTRICA, GAS, VAPORE E ARIA CONDIZIONATA', 'FORNITURA DI ACQUA; RETI FOGNARIE, ATTIVITÀ DI GESTIONE DEI RIFIUTI E RISANAMENTO', 'FORNITURA DI ACQUA; RETI FOGNARIE, ATTIVITÀ DI GESTIONE DEI RIFIUTI E RISANAMENTO', 'FORNITURA DI ACQUA; RETI FOGNARIE, ATTIVITÀ DI GESTIONE DEI RIFIUTI E RISANAMENTO', 'FORNITURA DI ACQUA; RETI FOGNARIE, ATTIVITÀ DI GESTIONE DEI RIFIUTI E RISANAMENTO', 'COSTRUZIONI', 'COSTRUZIONI', 'COSTRUZIONI', 'COMMERCIO ALL INGROSSO E AL DETTAGLIO; RIPARAZIONE DI AUTOVEICOLI E MOTOCICLI', 'COMMERCIO ALL INGROSSO E AL DETTAGLIO; RIPARAZIONE DI AUTOVEICOLI E MOTOCICLI', 'COMMERCIO ALL INGROSSO E AL DETTAGLIO; RIPARAZIONE DI AUTOVEICOLI E MOTOCICLI', 'TRASPORTO E MAGAZZINAGGIO', 'TRASPORTO E MAGAZZINAGGIO', 'TRASPORTO E MAGAZZINAGGIO', 'TRASPORTO E MAGAZZINAGGIO', 'TRASPORTO E MAGAZZINAGGIO', 'ATTIVITÀ DEI SERVIZI DI ALLOGGIO E DI RISTORAZIONE', 'ATTIVITÀ DEI SERVIZI DI ALLOGGIO E DI RISTORAZIONE', 'SERVIZI DI INFORMAZIONE E COMUNICAZIONE', 'SERVIZI DI INFORMAZIONE E COMUNICAZIONE', 'SERVIZI DI INFORMAZIONE E COMUNICAZIONE', 'SERVIZI DI INFORMAZIONE E COMUNICAZIONE', 'SERVIZI DI INFORMAZIONE E COMUNICAZIONE', 'SERVIZI DI INFORMAZIONE E COMUNICAZIONE', 'ATTIVITÀ FINANZIARIE E ASSICURATIVE', 'ATTIVITÀ FINANZIARIE E ASSICURATIVE', 'ATTIVITÀ FINANZIARIE E ASSICURATIVE', 'ATTIVITÀ IMMOBILIARI', 'ATTIVITÀ PROFESSIONALI, SCIENTIFICHE E TECNICHE', 'ATTIVITÀ PROFESSIONALI, SCIENTIFICHE E TECNICHE', 'ATTIVITÀ PROFESSIONALI, SCIENTIFICHE E TECNICHE', 'ATTIVITÀ PROFESSIONALI, SCIENTIFICHE E TECNICHE', 'ATTIVITÀ PROFESSIONALI, SCIENTIFICHE E TECNICHE', 'ATTIVITÀ PROFESSIONALI, SCIENTIFICHE E TECNICHE', 'ATTIVITÀ PROFESSIONALI, SCIENTIFICHE E TECNICHE', 'NOLEGGIO, AGENZIE DI VIAGGIO, SERVIZI DI SUPPORTO ALLE IMPRESE', 'NOLEGGIO, AGENZIE DI VIAGGIO, SERVIZI DI SUPPORTO ALLE IMPRESE', 'NOLEGGIO, AGENZIE DI VIAGGIO, SERVIZI DI SUPPORTO ALLE IMPRESE', 'NOLEGGIO, AGENZIE DI VIAGGIO, SERVIZI DI SUPPORTO ALLE IMPRESE', 'NOLEGGIO, AGENZIE DI VIAGGIO, SERVIZI DI SUPPORTO ALLE IMPRESE', 'NOLEGGIO, AGENZIE DI VIAGGIO, SERVIZI DI SUPPORTO ALLE IMPRESE', 'AMMINISTRAZIONE PUBBLICA E DIFESA; ASSICURAZIONE SOCIALE OBBLIGATORIA', 'ISTRUZIONE', 'SANITÀ E ASSISTENZA SOCIALE', 'SANITÀ E ASSISTENZA SOCIALE', 'SANITÀ E ASSISTENZA SOCIALE', 'ATTIVITÀ ARTISTICHE, SPORTIVE, DI INTRATTENIMENTO E DIVERTIMENTO', 'ATTIVITÀ ARTISTICHE, SPORTIVE, DI INTRATTENIMENTO E DIVERTIMENTO', 'ATTIVITÀ ARTISTICHE, SPORTIVE, DI INTRATTENIMENTO E DIVERTIMENTO', 'ATTIVITÀ ARTISTICHE, SPORTIVE, DI INTRATTENIMENTO E DIVERTIMENTO', 'ALTRE ATTIVITÀ DI SERVIZI', 'ALTRE ATTIVITÀ DI SERVIZI', 'ALTRE ATTIVITÀ DI SERVIZI', 'ATTIVITÀ DI FAMIGLIE E CONVIVENZE COME DATORI DI LAVORO PER PERSONALE DOMESTICO', 'ATTIVITÀ DI FAMIGLIE E CONVIVENZE COME DATORI DI LAVORO PER PERSONALE DOMESTICO','ORGANIZZAZIONI ED ORGANISMI EXTRATERRITORIALI', 'no.sector')
+
+istat.sectors.map <- data.frame(ATECO.Sector.Code=ATECO.Sector.Code, ATECO.Sector.Name=ATECO.Sector.Name, ATECO.Sector.Description=ATECO.Sector.Description)
+
+# Merge istat.sectors.map with AIDA dataframe, by ATECO.Sector.Code key
+aida <- merge(aida,istat.sectors.map,by="ATECO.Sector.Code")
+
+# Delete ATECO.Sector.Code feature, because we already have the secor name.
+aida$ATECO.Sector.Code <- NULL
+
+# Cast ATECO.Sector.Name as Factor
+aida$ATECO.Sector.Name <- as.factor(aida$ATECO.Sector.Name)
+
+rm(istat.sectors.map)
+# Description of ISTAT sectors
+# https://www.istat.it/it/archivio/17888
+# http://www.fr.camcom.gov.it/sites/default/files/cciaa/RinnovoConsiglio/ateco-2007-struttura.pdf
+```
+
+Legal Form
+```{r}
+# Remove missing values
+aida <- aida[!is.na(aida$Legal.form),]
+```
+
+Legal Status by Failed
+```{r}
+table(aida$Failed)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=Failed, fill=Legal.status)) +
+  geom_bar() +
+  scale_fill_hue(c = 90) 
+```
+
+Legal Form by Failed
+```{r}
+table(aida$Failed)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=Failed, fill=Legal.form)) +
+  geom_bar() +
+  scale_fill_hue(c = 90) 
+```
+
+Legal Status Bar Plot
+```{r}
+table(aida$Legal.status)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=fct_rev(fct_infreq(Legal.status)), fill=Legal.status)) +
+  geom_bar() +
+  scale_fill_hue(c = 40) +
+  theme(legend.position="none") + 
+  coord_flip()
+```
+
+Legal Form Bar Plot
+```{r}
+table(aida$Legal.form)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=fct_rev(fct_infreq(Legal.form)), fill=Legal.form)) +
+  geom_bar() +
+  scale_fill_hue(c = 40) +
+  theme(legend.position="none") + 
+  coord_flip()
+```
+
