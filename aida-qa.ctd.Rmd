@@ -6,6 +6,13 @@ output:   aida-qa-ctd.nb.html
 
 Setup
 ```{r}
+#if (!require("devtools")) {
+#  install.packages("devtools")
+#}
+#install.packages("cli")
+#devtools::install_github("b0rxa/scmamp")
+
+library(scmamp)
 library(skimr)  
 library(ggplot2)
 library(hrbrthemes)   
@@ -48,7 +55,7 @@ df.failed <- df[df$Failed=='Yes',]
 
 # Confrontiamo la distribuzione dell'età delle aziende fallite su 2 anni: 2015 e 2016
 table(df.failed$Year)
-df.failed <- df.failed[df.failed$Year == 2015 | df.failed$Year == 2016 ,]
+df.failed <- df.failed[df.failed$Year == 2010 | df.failed$Year == 2011 ,]
 ```
 
 Densità delle aziende fallite sugli anni selezionati
@@ -64,8 +71,8 @@ ggplot(data=df.failed, aes(x=Age, group=as.factor(Year), fill=as.factor(Year))) 
 A.ctd Confronto la distribuzione dell'età delle aziende fallite su 2 anni
 ```{r}
 # Considero l'età di tutte le aziende fallite negli anni selezionati
-age.y1.failed <- df.failed[df.failed$Year == 2015,'Age']
-age.y2.failed <- df.failed[df.failed$Year == 2016,'Age']
+age.y1.failed <- df.failed[df.failed$Year == 2010,'Age']
+age.y2.failed <- df.failed[df.failed$Year == 2011,'Age']
 
 # Il ks test ritorna se le due distribuzioni sono differenti
 ks_res = ks.test(age.y1.failed,age.y2.failed)
@@ -93,12 +100,12 @@ for(form.name in company.forms){
   print("**************")
   
   # Età delle aziende fallite nei due anni, per ogni form name
-  age.y1.failed <- df.failed[df.failed$Year == 2015 & df.failed$Legal.form==form.name ,'Age']
-  age.y2.failed <- df.failed[df.failed$Year == 2016 & df.failed$Legal.form==form.name ,'Age']
+  age.y1.failed <- df.failed[df.failed$Year == 2010 & df.failed$Legal.form==form.name ,'Age']
+  age.y2.failed <- df.failed[df.failed$Year == 2011 & df.failed$Legal.form==form.name ,'Age']
   
   if( length(age.y1.failed)>100 & length(age.y2.failed)>100 ){
     
-    #print(ks.test(age.y1.failed,age.y2.failed))
+    print(ks.test(age.y1.failed,age.y2.failed))
   
     print(t.test(age.y1.failed,age.y2.failed))
     print(t.test(age.y1.failed,age.y2.failed,alternative = 'less'))
@@ -129,12 +136,12 @@ for(region.name in company.regions){
   print("**************")
   
   # Età delle aziende fallite nei due anni, per ogni regione
-  age.y1.failed <- df.failed[df.failed$Year == 2015 & df.failed$Region==region.name ,'Age']
-  age.y2.failed <- df.failed[df.failed$Year == 2016 & df.failed$Region==region.name ,'Age']
+  age.y1.failed <- df.failed[df.failed$Year == 2010 & df.failed$Region==region.name ,'Age']
+  age.y2.failed <- df.failed[df.failed$Year == 2011 & df.failed$Region==region.name ,'Age']
   
   if( length(age.y1.failed)>100 & length(age.y2.failed)>100 ){
     
-    #print(ks.test(age.y1.failed,age.y2.failed))
+    print(ks.test(age.y1.failed,age.y2.failed))
     
     print(t.test(age.y1.failed,age.y2.failed))
     print(t.test(age.y1.failed,age.y2.failed,alternative = 'less'))
@@ -153,16 +160,45 @@ for(region.name in company.regions){
 
 ```
 
-A.plus: ANOVA & FRIEDMAN test -  provo a confrontare la distribuzione dell'età delle aziende fallite in un periodo superiore a 2 anni
+A.plus.1: ANOVA test -  confronto la distribuzione dell'età delle aziende fallite in un periodo superiore a 2 anni
 ```{r}
 # Eseguo il test multiplo con ANOVA, prima verifico che le distribuzioni siano normali
 
 #Shapiro test per verificare la normalità (non si può fare con più di 5000 osservazioni)
 df.failed <- df[df$Failed=='Yes',]
-tapply(df.failed$Age[0:5000],df.failed$Year[0:5000],shapiro.test)
+
+# Il numero di osservazioni di ogni distribuzioni deve essere [3,5000]. Per ogni anno mi assicuro che il numero di aziende fallite siano comrese in tale intervallo prima di fare il test (supponiamo almeno 100 osservazioni)
+table(df.failed$Year)
+
+# Per ogni anno seleziono casualmente l'età di 5000 aziende fallite
+for (y in unique(df.failed$Year)){
+  df.yy.failed <- df.failed[df.failed$Year==y,] #tutte le aziende fallite in un anno
+  
+  n <- nrow(df.yy.failed) #numero aziende fallite in quell'anno
+  print(y)
+  print(n)
+  
+  #se n è superiore a  5000 seleziono casualmente 5000 age
+  if (n>5000) {
+    random.df.yy.failed <- df.yy.failed[ sample(nrow(df.yy.failed),5000), 'Age'] #età di 5000 aziende scelte casualmente fallite in quell anno
+    print(shapiro.test(random.df.yy.failed))
+  }
+  #se n è compreso [100,5000] considero l'età di quelle n aziende
+  else if (n>=100) {
+    print(shapiro.test(df.yy.failed$Age))
+  }
+  #altrimenti non faccio il test (anche se già con 3 osservazioni potrei)
+  else{
+    print("Scarso numero di osservazioni")
+  }
+
+}
 
 # Non posso usare l'ANOVA test perchè le distribuzioni non sono normali
+```
 
+A.plus.2: FRIEDMAN test -  confronto la distribuzione dell'età delle aziende fallite in un periodo superiore a 2 anni
+```{r}
 
 # Provo FRIEDMAN non-parametric test
 
@@ -174,18 +210,34 @@ y4 <- 2012
 y5 <- 2013
 
 #considero solo le età delle aziende fallite negli anni scelti
-age.y1.failed <- df.failed[df.failed$Year == y1,'Age'][0:100000]
-age.y2.failed <- df.failed[df.failed$Year == y2,'Age'][0:100000]
-age.y3.failed <- df.failed[df.failed$Year == y3,'Age'][0:100000]
-age.y4.failed <- df.failed[df.failed$Year == y4,'Age'][0:100000]
-age.y5.failed <- df.failed[df.failed$Year == y5,'Age'][0:100000]
+age.y1.failed <- df.failed[df.failed$Year == y1,'Age']
+age.y2.failed <- df.failed[df.failed$Year == y2,'Age']
+age.y3.failed <- df.failed[df.failed$Year == y3,'Age']
+age.y4.failed <- df.failed[df.failed$Year == y4,'Age']
+age.y5.failed <- df.failed[df.failed$Year == y5,'Age']
 
-x <- data.frame(y1=age.y1.failed, y2=age.y2.failed, y3=age.y3.failed, y4=age.y4.failed, y5=age.y5.failed)
+# minimo numero m di aziende fallite nei 5 anni scelti
+m <- min( length(age.y1.failed),length(age.y2.failed), length(age.y3.failed), length(age.y4.failed), length(age.y5.failed) ) -1
+
+# seleziono casualmente l'età di 'm' aziende fallite in quell anno 
+random.age.y1.failed <- age.y1.failed[ sample(length(age.y1.failed),m)] 
+random.age.y2.failed <- age.y2.failed[ sample(length(age.y2.failed),m)] 
+random.age.y3.failed <- age.y3.failed[ sample(length(age.y3.failed),m)] 
+random.age.y4.failed <- age.y4.failed[ sample(length(age.y4.failed),m)] 
+random.age.y5.failed <- age.y5.failed[ sample(length(age.y5.failed),m)] 
 
 # Friedman non-parametric test
+x <- data.frame(y1=random.age.y1.failed, y2=random.age.y2.failed, y3=random.age.y3.failed, y4=random.age.y4.failed, y5=random.age.y5.failed)
 friedman.test(data.matrix(x))
 
+# Eseguo il Nemenyi test per vedere quali sono le distribuzioni tra loro diverse
+test = nemenyiTest(x, alpha=0.05)
+test
+test$diff.matrix
+abs(test$diff.matrix) > test$statistic # significant tests
+plotCD(x, alpha=0.05, cex=1.25)
 ```
+
 
 
 *##############*
@@ -213,9 +265,7 @@ df.failed <- df[df$Failed=='Yes',]
 
 # Confrontiamo la distribuzione dell'età delle aziende fallite su 2 anni: 2015 e 2016
 table(df.failed$Year)
-df.failed <- df.failed[df.failed$Year == 2015 | df.failed$Year == 2016 ,]
-
-rm(df)
+df.failed <- df.failed[df.failed$Year == 2010 | df.failed$Year == 2011 ,]
 ```
 
 Densità della dimensione delle aziende fallite sugli anni selezionati
@@ -231,8 +281,8 @@ ggplot(data=df.failed, aes(x=Total.assetsth, group=as.factor(Year), fill=as.fact
 A.ctd Compare the distributions of SIZE of failed companies over selected years
 ```{r}
 # Considero la dimensione di tutte le aziende fallite negli anni selezionati
-size.y1.failed <- df.failed[df.failed$Year == 2015,'Total.assetsth']
-size.y2.failed <- df.failed[df.failed$Year == 2016,'Total.assetsth']
+size.y1.failed <- df.failed[df.failed$Year == 2010,'Total.assetsth']
+size.y2.failed <- df.failed[df.failed$Year == 2011,'Total.assetsth']
 
 # Il ks test ritorna se le due distribuzioni sono differenti
 ks_res = ks.test(size.y1.failed,size.y2.failed)
@@ -262,12 +312,12 @@ for(form.name in company.forms){
   print("**************")
   
   # Dimensione delle aziende fallite nei due anni, per ogni form name
-  size.y1.failed <- df.failed[df.failed$Year == 2015 & df.failed$Legal.form==form.name ,'Total.assetsth']
-  size.y2.failed <- df.failed[df.failed$Year == 2016 & df.failed$Legal.form==form.name ,'Total.assetsth']
+  size.y1.failed <- df.failed[df.failed$Year == 2010 & df.failed$Legal.form==form.name ,'Total.assetsth']
+  size.y2.failed <- df.failed[df.failed$Year == 2011 & df.failed$Legal.form==form.name ,'Total.assetsth']
   
   if( length(size.y1.failed)>100 & length(size.y2.failed)>100 ){
     
-    #print(ks.test(size.y1.failed,size.y2.failed))
+    print(ks.test(size.y1.failed,size.y2.failed))
     
     print(t.test(size.y1.failed, size.y2.failed))
     print(t.test(size.y1.failed, size.y2.failed, alternative = 'less'))
@@ -300,12 +350,12 @@ for(region.name in company.regions){
   print("**************")
   
   # Dimensione delle aziende fallite nei due anni, per ogni regione
-  size.y1.failed <- df.failed[df.failed$Year == 2015 & df.failed$Region==region.name ,'Total.assetsth']
-  size.y2.failed <- df.failed[df.failed$Year == 2016 & df.failed$Region==region.name ,'Total.assetsth']
+  size.y1.failed <- df.failed[df.failed$Year == 2010 & df.failed$Region==region.name ,'Total.assetsth']
+  size.y2.failed <- df.failed[df.failed$Year == 2011 & df.failed$Region==region.name ,'Total.assetsth']
   
   if( length(size.y1.failed)>100 & length(size.y2.failed)>100 ){
   
-    #print(ks.test(size.y1.failed,size.y2.failed))
+    print(ks.test(size.y1.failed,size.y2.failed))
     
     print(t.test(size.y1.failed,size.y2.failed))
     print(t.test(size.y1.failed,size.y2.failed,alternative = 'less'))
@@ -325,172 +375,80 @@ for(region.name in company.regions){
 # RISULTATI
 ```
 
-A.plus: ANOVA & FRIEDMAN test -  provo a confrontare la distribuzione delle dimensioni delle aziende fallite in un periodo superiore a 2 anni
+A.plus.1: ANOVA test -  confronto la distribuzione delle dimensioni delle aziende fallite in un periodo superiore a 2 anni
 ```{r}
 # Eseguo il test multiplo con ANOVA, prima verifico che le distribuzioni siano normali
 
 #Shapiro test per verificare la normalità (non si può fare con più di 5000 osservazioni)
 df.failed <- df[df$Failed=='Yes',]
-tapply(df.failed$Total.assetsth[0:5000],df.failed$Year[0:5000],shapiro.test)
+
+# Il numero di osservazioni di ogni distribuzioni deve essere [3,5000]. Per ogni anno mi assicuro che il numero di aziende fallite siano comrese in tale intervallo prima di fare il test (supponiamo almeno 100 osservazioni)
+table(df.failed$Year)
+
+# Per ogni anno seleziono casualmente la dimensione di 5000 aziende fallite
+for (y in unique(df.failed$Year)){
+  df.yy.failed <- df.failed[df.failed$Year==y,] #tutte le aziende fallite in un anno
+  
+  n <- nrow(df.yy.failed) #numero aziende fallite in quell'anno
+  print(y)
+  print(n)
+  
+  #se n è superiore a 5000 seleziono casualmente 5000 'totalasseths'
+  if (n>5000) {
+    random.df.yy.failed <- df.yy.failed[ sample(nrow(df.yy.failed),5000), 'Total.assetsth'] #dimensione di 5000 aziende scelte casualmente
+    print(shapiro.test(random.df.yy.failed))
+  }
+  #se n è compreso [100,5000] considero la dimensione di quelle n aziende
+  else if (n>=100) {
+    print(shapiro.test(df.yy.failed$Total.assetsth))
+  }
+  #altrimenti non faccio il test (anche se già con 3 osservazioni potrei)
+  else{
+    print("Scarso numero di osservazioni")
+  }
+
+}
 
 # Non posso usare l'ANOVA test perchè le distribuzioni non sono normali
+```
 
+A.plus.2: FRIEDMAN test -  confronto la distribuzione delle dimensioni delle aziende fallite in un periodo superiore a 2 anni
+```{r}
+# FRIEDMAN non-parametric test
 
-# Provo FRIEDMAN non-parametric test
-
-# Seleziono alcuni anni (gli stessi usati per il test multiplo con Age)
+#seleziono alcuni anni (più numerosi)
 y1 <- 2009
 y2 <- 2010
 y3 <- 2011
 y4 <- 2012
 y5 <- 2013
 
-#considero solo le età delle aziende fallite negli anni scelti
-size.y1.failed <- df.failed[df.failed$Year == y1,'Total.assetsth'][0:100000]
-size.y2.failed <- df.failed[df.failed$Year == y2,'Total.assetsth'][0:100000]
-size.y3.failed <- df.failed[df.failed$Year == y3,'Total.assetsth'][0:100000]
-size.y4.failed <- df.failed[df.failed$Year == y4,'Total.assetsth'][0:100000]
-size.y5.failed <- df.failed[df.failed$Year == y5,'Total.assetsth'][0:100000]
+#considero solo le dimnesioni delle aziende fallite negli anni scelti
+size.y1.failed <- df.failed[df.failed$Year == y1,'Total.assetsth']
+size.y2.failed <- df.failed[df.failed$Year == y2,'Total.assetsth']
+size.y3.failed <- df.failed[df.failed$Year == y3,'Total.assetsth']
+size.y4.failed <- df.failed[df.failed$Year == y4,'Total.assetsth']
+size.y5.failed <- df.failed[df.failed$Year == y5,'Total.assetsth']
 
-x <- data.frame(y1=size.y1.failed, y2=size.y2.failed, y3=size.y3.failed, y4=size.y4.failed, y5=size.y5.failed)
+# minimo numero m di aziende fallite nei 5 anni scelti
+m <- min( length(size.y1.failed),length(size.y2.failed), length(size.y3.failed), length(size.y4.failed), length(size.y5.failed) )
+
+# seleziono casualmente l'età di 'm' aziende fallite in quell anno 
+random.size.y1.failed <- size.y1.failed[ sample(length(size.y1.failed),m)] 
+random.size.y2.failed <- size.y2.failed[ sample(length(size.y2.failed),m)] 
+random.size.y3.failed <- size.y3.failed[ sample(length(size.y3.failed),m)] 
+random.size.y4.failed <- size.y4.failed[ sample(length(size.y4.failed),m)] 
+random.size.y5.failed <- size.y5.failed[ sample(length(size.y5.failed),m)] 
 
 # Friedman non-parametric test
+x <- data.frame(y1=random.size.y1.failed, y2=random.size.y2.failed, y3=random.size.y3.failed, y4=random.size.y4.failed, y5=random.size.y5.failed)
 friedman.test(data.matrix(x))
 
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*################*
-*#### PROVA #####*
-*################*
-
-```{r}
-
-# Filtering ages of all failed companies
-aida.failed <- aida[aida$Failed=='Yes',]
-
-# We compare the distribution of age with failed companies over two years
-table(aida.failed$Last.accounting.closing.date)
-
-# Filtering ages of all failed companies over years
-aida.failed <- aida.failed[aida.failed$Last.accounting.closing.date == 2017 | aida.failed$Last.accounting.closing.date == 2018 |
-                                          aida.failed$Last.accounting.closing.date == 2016 | aida.failed$Last.accounting.closing.date == 2015,]
-
-
-rm(aida)
-```
-*###############*
-*##### AGE #####*
-*###############*
-
-A.ctd Compare the distributions of AGE of failed companies over selected years
-```{r}
-boxplot(Age~Last.accounting.closing.date, data=aida.failed)
-```
-```{r}
-# req: normality (Shapiro test si può fare su al massimo 5000 sample)
-tapply(aida.failed$Age[0:5000], aida.failed$Last.accounting.closing.date[0:5000], shapiro.test)
-```
-```{r}
-#No normalità delle distribuzioni e quindi non è possibile effettuare ANOVA test
-
-# Testing multiple samples: non-parametric test
-# Package SCMAMP: see https://github.com/b0rxa/scmamp
-# installation
-if (!require("devtools")) {
-  install.packages("devtools")
-}
-install.packages("cli")
-devtools::install_github("b0rxa/scmamp")
-library(scmamp)
-```
-
-
-```{r}
-table(aida.failed$Last.accounting.closing.date)
-```
-```{r}
-age.2015 = aida.failed[aida.failed$Last.accounting.closing.date==2015,]$Age[0:47000]
-age.2016 = aida.failed[aida.failed$Last.accounting.closing.date==2016,]$Age[0:47000]
-age.2017 = aida.failed[aida.failed$Last.accounting.closing.date==2017,]$Age[0:47000] 
-age.2018 = aida.failed[aida.failed$Last.accounting.closing.date==2018,]$Age[0:47000]
-```
-
-
-```{r}
-x <- data.frame("Age2015"=age.2015, "Age2016"=age.2016, "Age2017"=age.2017, "Age2018"=age.2018)
-plotDensities(data=x, size=1.1)
-```
-
-
-```{r}
-# Friedman non-parametric test
-friedmanTest(x)
-```
-```{r}
-# Post-hoc Nemenyi 
+# Eseguo il Nemenyi test per vedere quali sono le distribuzioni tra loro diverse
 test = nemenyiTest(x, alpha=0.05)
 test
-```
-```{r}
 test$diff.matrix
 abs(test$diff.matrix) > test$statistic # significant tests
-```
-```{r}
 plotCD(x, alpha=0.05, cex=1.25)
-```
 
-
-
-ctd Does AGE change for a specific company form (i.e. SPA,SRL,etc)?
-
-```{r}
-boxplot(Age~Legal.form, data=aida.failed)
-```
-
-
-```{r}
-# List of unique legal form values
-#company.forms <- unique(aida.failed$Legal.form)
-
-company.forms <- names(which(table(aida.failed$Legal.form) > 3000))
-x <- data.frame("S.C.A.R.L."=c(1:3000))
-for(form in company.forms){
-  x[[form]] <- aida.failed[aida.failed$Legal.form==form,]$Age[0:3000]
-}
-
-plotDensities(data=x, size=1.1)
-
-```
-
-```{r}
-friedmanTest(x)
-```
-```{r}
-# Post-hoc Nemenyi 
-test = nemenyiTest(x, alpha=0.05)
-test
-```
-
-```{r}
-test$diff.matrix
-abs(test$diff.matrix) > test$statistic # significant tests
-```
-
-```{r}
-plotCD(x, alpha=0.05, cex=1.25)
 ```
