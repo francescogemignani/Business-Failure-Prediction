@@ -5,7 +5,6 @@ output: html_notebook
 
 Per fornire uno score di fallimento si sono provati i seguenti modelli:
   - Logistic Regression
-  - Penalized Logistic Regression
   - Elastic Net Regularization
   
 Feature Selection:
@@ -18,15 +17,13 @@ library
 #install.packages("caret", dep = TRUE)
 library(skimr)
 library(lattice)
-library(ggplot2)
 library(data.table)
 library(caret)
 library(ROCR)
-library(glmnet)
 ```
 
 ```{r}
-aida = fread("../aida_preproc.csv")
+aida = fread("../aida_abs.csv")
 
 # Make the operator
 '%!in%' <- function(x,y)!('%in%'(x,y))
@@ -42,40 +39,15 @@ aida[aida$Legal.status %!in% act_vector,'Failed'] <- 1
 aida[is.na(aida$Failed), ]
 aida$Failed <- as.factor(aida$Failed)
 
-#drops <- c('Company.name','File','Tax.code.number','Legal.form','Legal.status','Comune.ISTAT.code','Region','Province')
-#aida <- subset(aida, select = -c(Company.name,ATECO.2007code,File,Tax.code.number,Legal.form,Legal.status,Comune.ISTAT.code,Region,Province))
+drops <- c('Company.name','File','Tax.code.number','Legal.form','Legal.status','Comune.ISTAT.code','Region','Province')
+aida <- subset(aida, select = -c(Company.name,File,ATECO.2007code,Legal.form,Tax.code.number,Legal.status,Comune.ISTAT.code,Region,Province))
 ```
 
+Si considerano gli anni 2014 e 2015 per il training dei modelli dato che la distribuzione dell'attributo Failed è bilanciata
 ```{r}
-#create subsample of the dataset
-sample = rbinom(nrow(aida), 1, .1)           
-data = aida[sample==1,]
-
-order = data[order(data$Company.name)]
-View(order[1:100,])
-#data = aida[aida$Year==2016, ]
-
-#dummies <- dummyVars( ~ ., data = data)
-#head(predict(dummies, newdata = data))
+table(na.omit(aida)$Failed, na.omit(aida)$Year)
+data = aida[aida$Year %in% c(2014,2015)]
 ```
-
-```{r}
-order$Age <- NA
-unique.names = unique(order[order$Failed==1]$Company.name)
-
-for(name in unique.names){
-  rows = order[order$Company.name == name]
-  last.year = max(rows$Year)
-  
-  order$Failed[order$Company.name == name & order$Year != last.year] = 0
-  #print(last.year)
-
-
-}
-
-```
-```
-
 
 
 1) Un problema dei modelli lineari è l'alta correlazione tra le variabili indipendenti,
@@ -88,6 +60,7 @@ prima di costruire il regresore logistico si cerca di escludere le variabili con
 corr.matrix=cor(subset(na.omit(aida), select = -c(Failed)))
 #corr.matrix[abs(corr.matrix) < 0.8] = NA
 #View(corr.matrix)
+
 to.remove = findCorrelation(corr.matrix, cutoff = .8, verbose = TRUE, names=TRUE)
 to.remove
 ```
@@ -96,13 +69,13 @@ to.remove
 colnames(data)
 ```
 
-
+Coppie correlate individuate dal metodo findCorrelation, si prosegue scegliendo di elimanare quello con VIF maggiore
 ```{r}
-cat(colnames(data)[19], "-", colnames(data)[21], "\n") #ROS
-cat(colnames(data)[17], "-", colnames(data)[15], "\n") #Net.working.capitalth
-cat(colnames(data)[4], "-", colnames(data)[18], "\n") #ROA
-cat(colnames(data)[15], "-", colnames(data)[16], "\n") #Net.working.capitalth
-cat(colnames(data)[14], "-", colnames(data)[7]) #Net.financial.positionth
+cat(colnames(data)[19], "-", colnames(data)[21], "\n") #remove ROA
+cat(colnames(data)[17], "-", colnames(data)[15], "\n") #remove Net.financial.positionth
+cat(colnames(data)[4], "-", colnames(data)[18], "\n") #remove Cash.Flowth
+cat(colnames(data)[15], "-", colnames(data)[16], "\n") #remove Net.financial.positionth
+cat(colnames(data)[14], "-", colnames(data)[7]) #remove Current.ratio
 
 ```
 
@@ -116,9 +89,12 @@ lr.fit = glm(Failed ~ ., data = na.omit(data), family=binomial("logit"))
 
 sort(vif(lr.fit))
 ```
-Data Partitioning
+
+Data Partitioning, si divide il dataset in training e test set (70%-30%)
+la distribuzione di Failed nel training set è bilanciata
 ```{r}
 set.seed(42)
+
 trainIndex <- createDataPartition(data$Failed, p = .7, 
                                   list = FALSE, 
                                   times = 1)
@@ -129,221 +105,146 @@ aidaTest  <- data[-trainIndex,]
 aidaTrain <- na.omit(aidaTrain)
 aidaTest <- na.omit(aidaTest)
 
-aidaTrain <- subset(aidaTrain, select = -c(Year))
+#Si rimuove da subito il valori per elimianre il problema della multicollinearità tra le variabili
+aidaTrain <- subset(aidaTrain, select = -c(Year, ROA, Net.financial.positionth, Cash.Flowth, Current.ratio))
 
 table(aidaTrain$Failed)
 ```
 
+2) Variable selection usando la procedura stepAIC di Logistic regression a partire dal set di attributi ottenuto fino a questo momento
 
 ```{r}
-down.aidaTrain <- downSample(x = aidaTrain, y = aidaTrain$Failed)
-down.aidaTrain <- subset(down.aidaTrain, select = -c(Class))
-table(down.aidaTrain$Failed)  
-```
-
-```{r}
-over.aidaTrain <- upSample(x = aidaTrain, y = aidaTrain$Failed)
-over.aidaTrain <- subset(over.aidaTrain, select = -c(Class))
-table(over.aidaTrain$Failed)      
-```
-
-Logistic regression eliminando le variabili altamente correlate
-```{r}
-# resampling method
-noresampling = trainControl(method="none")
-
-lr.fit = train(Failed ~ ., data = subset(aidaTrain, select=-c(ROS, Net.working.capitalth, ROA, Net.financial.positionth)), 
-               method = "glm", trControl=noresampling,
-               # pass-trough options
-               family=binomial(logit))
-lr.fit
-summary(lr.fit)
-```
-```{r}
-# predicted confidence on validation set
-lr.pred = predict(lr.fit, newdata = aidaTest, type="raw")
-lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # as predict_proba in scikit-learn
-lr.pconf = lr.prob[,2]
-# built-in metrics
-confusionMatrix(lr.pred, aidaTest$Failed, positive="1", mode = "prec_recall")
-```
-
-2) Variable selection usando la procedura stepAIC su tre training set differenti (originale, bilanciato con undersampling, bilanciato con oversampling)
-
-Logistic regression con trainingset originale (leggermente sbilanciato)
-
-```{r}
-# resampling method
-noresampling = trainControl(method="none")
-
 lr.fit = train(Failed ~ ., data = aidaTrain, 
-               method = "glmStepAIC", trControl=noresampling,
+               method = "glmStepAIC", trControl=trainControl(method="none"),
                # pass-trough options
                family=binomial(logit))
+
+best.formula = formula(lr.fit) #Si salva la miglior formula
+
 lr.fit
 summary(lr.fit)
 ```
 
 
-
+Valutazione delle performance sul test set
 ```{r}
-# predicted confidence on validation set
 lr.pred = predict(lr.fit, newdata = aidaTest, type="raw")
-lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # as predict_proba in scikit-learn
+lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # predict_proba
 lr.pconf = lr.prob[,2]
-# built-in metrics
+
 confusionMatrix(lr.pred, aidaTest$Failed, positive="1", mode = "prec_recall")
 ```
 
 
-
+Calibration plot
 ```{r}
-# calibration plot
 cal_data = calibration(aidaTest$Failed ~ lr.pconf, class="1")
 xyplot(cal_data)
 ```
 
 
-Logistic regression con training set bilanciato con random undersampling
-
+Si valutano alcune metriche al variare del cutoff, il cutoff dove si hanno valori migliori è circa 0.5 (quello di default)
 ```{r}
-# resampling method
-noresampling = trainControl(method="none")
-
-lr.fit = train(Failed ~ ., data = down.aidaTrain, 
-               method = "glmStepAIC", trControl=noresampling,
-               family=binomial(logit))
-lr.fit
-best.formula = formula(lr.fit)
-summary(lr.fit)
-```
-
-```{r}
-# predicted confidence on validation set
-lr.pred = predict(lr.fit, newdata = aidaTest, type="raw")
-lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # as predict_proba in scikit-learn
-lr.pconf = lr.prob[,2]
-# built-in metrics
-confusionMatrix(lr.pred, aidaTest$Failed, positive="1", mode = "prec_recall")
-```
-
-```{r}
-# using ROCR for metrics at cutoff
 lr.prediction = prediction(lr.pconf, aidaTest$Failed)
-# acc at cutoff
+
 lr.acc = performance(lr.prediction, "acc"); plot(lr.acc)
-# tpr (recall) at cutoff
+
 lr.tpr = performance(lr.prediction, "tpr"); plot(lr.tpr)
-# f1 at cutoff
+
 lr.f1 = performance(lr.prediction, "f"); plot(lr.f1)
-# precision at cutoff
+
 lr.prec = performance(lr.prediction, "prec"); plot(lr.prec)
-# roc curve
+
+#ROC Curve
 lr.roc = performance(lr.prediction, "tpr", "fpr")
 plot(lr.roc, colorize=T); abline(a=0, b= 1)
-```
-```{r}
-# AUC: performance returns an object whose members (called 'slots') are accessed with '@'
+
+#AUC
 o = performance(lr.prediction, "auc")
 o@y.values[[1]]
 ```
 
-```{r}
-featurePlot(x=data.frame(lr.pconf), y=aidaTest$Failed, plot='density', auto.key = list(columns = 2))
-```
 
-Cambio del decision threshold
-```{r}
-cutoff = 0.3
-lr.pred.cutoff = factor(ifelse(lr.pconf>=cutoff, 1, 0), levels=levels(aidaTest$Failed))
-confusionMatrix(lr.pred.cutoff, aidaTest$Failed, positive="1", mode = "prec_recall")
-```
-
-
-Logistic regression con training set bilanciato con random oversampling
-```{r}
-# resampling method
-noresampling = trainControl(method="none")
-
-lr.fit = train(Failed ~ ., data = over.aidaTrain, 
-               method = "glmStepAIC", trControl=noresampling,
-               # pass-trough options
-               family=binomial(logit))
-lr.fit
-summary(lr.fit)
-```
-
-```{r}
-# predicted confidence on validation set
-lr.pred = predict(lr.fit, newdata = aidaTest, type="raw")
-lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # as predict_proba in scikit-learn
-lr.pconf = lr.prob[,2]
-# built-in metrics
-confusionMatrix(lr.pred, aidaTest$Failed, positive="1", mode = "prec_recall")
-```
-
-```{r}
-# using ROCR for metrics at cutoff
-lr.prediction = prediction(lr.pconf, aidaTest$Failed)
-# acc at cutoff
-lr.acc = performance(lr.prediction, "acc"); plot(lr.acc)
-# tpr (recall) at cutoff
-lr.tpr = performance(lr.prediction, "tpr"); plot(lr.tpr)
-# f1 at cutoff
-lr.f1 = performance(lr.prediction, "f"); plot(lr.f1)
-# precision at cutoff
-lr.prec = performance(lr.prediction, "prec"); plot(lr.prec)
-# roc curve
-lr.roc = performance(lr.prediction, "tpr", "fpr")
-plot(lr.roc, colorize=T); abline(a=0, b= 1)
-```
-```{r}
-# AUC: performance returns an object whose members (called 'slots') are accessed with '@'
-o = performance(lr.prediction, "auc")
-o@y.values[[1]]
-```
 ```{r}
 featurePlot(x=data.frame(lr.pconf), y=aidaTest$Failed, plot='density', auto.key = list(columns = 2))
 ```
 
 
 
-
-Logistic Regression usando cross validation con custom summary function,
+Logistic Regression usando cross validation con custom summary function sullo stesso training set,
 gli attributi usati sono quelli risultati dalla procedure glmStepAIC
-il training set usato è quello su cui si è applicato random undersampling
 ```{r}
 
 lev = c("class0", "class1")
-down.aidaTrain$Failed = factor(down.aidaTrain$Failed); levels(down.aidaTrain$Failed) = lev
+aidaTrain$Failed = factor(aidaTrain$Failed); levels(aidaTrain$Failed) = lev
 aidaTest$Failed = factor(aidaTest$Failed); levels(aidaTest$Failed) = lev
 
-# repeated cross validation
 rcv = trainControl(method="repeatedcv",
                    repeats=5, number=10,
                    classProbs = TRUE,
                    savePredictions = TRUE, #per poi poter valutare le performance anche sul training set
-                   summaryFunction = twoClassSummary)
+                   summaryFunction = twoClassSummary) #ROC, Sens, Spec
 
-lr2.fit = train(best.formula, data = down.aidaTrain, 
+lr2.fit = train(best.formula, data = aidaTrain, 
                 method = "glm", trControl=rcv,
-                metric="ROC",
+                metric="ROC", #ottimizza ROC
                 family=binomial(logit))
 lr2.fit
 ```
-
+Dettagli su 5x10 fold di cv per il valore di AUC
 ```{r}
 # details over 5x10 folds
 lr2.folds = lr2.fit$resample[['ROC']]
-mean(lr2.folds) # reported is mean performance
+mean(lr2.folds) # media dei folds
 ```
 
+Performance sul test set
 ```{r}
-# predicted confidence on validation set
 lr.pred = predict(lr2.fit, newdata = aidaTest, type="raw")
-lr.prob = predict(lr2.fit, newdata = aidaTest, type="prob") # as predict_proba in scikit-learn
+lr.prob = predict(lr2.fit, newdata = aidaTest, type="prob") #predict_proba
 lr.pconf = lr.prob[,2]
-# built-in metrics
+
+confusionMatrix(lr.pred, aidaTest$Failed, positive="class1", mode = "prec_recall")
+
+lr.prediction = prediction(lr.pconf, aidaTest$Failed)
+
+#lr.prediction = prediction(lr2.fit$pred$class1, lr2.fit$pred$obs) #Per valutare la ROC curve sui dati di training
+
+lr.roc = performance(lr.prediction, "tpr", "fpr")
+plot(lr.roc, colorize=T); abline(a=0, b= 1)
+```
+
+Si è deciso di creare un classificatore Random forest per poi fare un confronto con performance ottenute con logistic regression
+Si fa il training sugli stessi dati per confrontare i folds delle rispettive cross validation
+```{r}
+set.seed(42)
+
+rcv = trainControl(method="repeatedcv",
+                   repeats=5, number=10,
+                   classProbs = TRUE,
+                   savePredictions = TRUE, #per poi poter valutare le performance anche sul training set
+                   summaryFunction = twoClassSummary) #ROC, Sens, Spec
+
+tunegrid = expand.grid(.mtry=sqrt(ncol(aidaTrain)))
+
+rf.fit = train(Failed~., data = aidaTrain, 
+               method = "rf", trControl=rcv,
+               metric="ROC", tuneGrid=tunegrid,
+               ntree=50)
+rf.fit
+```
+Dettagli su 5x10 fold di cv per il valore di AUC
+```{r}
+rf.folds = rf.fit$resample[['ROC']]
+mean(rf.folds) # media dei folds
+```
+
+Performance sul test set
+```{r}
+lr.pred = predict(rf.fit, newdata = aidaTest, type="raw")
+lr.prob = predict(rf.fit, newdata = aidaTest, type="prob") #predict_proba
+lr.pconf = lr.prob[,2]
+
 confusionMatrix(lr.pred, aidaTest$Failed, positive="class1", mode = "prec_recall")
 
 lr.prediction = prediction(lr.pconf, aidaTest$Failed)
@@ -355,43 +256,28 @@ lr.roc = performance(lr.prediction, "tpr", "fpr")
 plot(lr.roc, colorize=T); abline(a=0, b= 1)
 ```
 
-Random forest per fare un confronto delle performance ottenute con logistic regression
-Si fa il training sullo stesso training set per poi poter fare un confronto tra i folds delle rispettive cross validation
-```{r}
-set.seed(42)
-tunegrid = expand.grid(.mtry=sqrt(ncol(down.aidaTrain))) 
-rf.fit = train(Failed~., data = down.aidaTrain, 
-               method = "rf", trControl=rcv,
-               metric="ROC", tuneGrid=tunegrid,
-               ntree=15)
-rf.fit
-```
-
-```{r}
-# details over 5x10 folds
-rf.folds = rf.fit$resample[['ROC']]
-mean(rf.folds) # reported is mean performance
-```
-
 Confronto tra i valori di AUC dei folds di random forest e logistic regression
 ```{r}
 library(BSDA)
 
-plot(density(lr2.folds),xlim=c(0.6,1))
+plot(density(lr2.folds),xlim=c(0.5,0.7))
 lines(density(rf.folds),col=2)
 ```
+
 Test di normalità delle due distribuzioni con Shapiro test
+In entrambi i casi non si può rifiutare l'ipotesi nulla e quindi si prosegue le analisi assumendo che le due distribuzioni siano normali
 ```{r}
 shapiro.test(lr2.folds)
 shapiro.test(rf.folds)
 ```
 
 F-test per verificare se le due distribuzioni hanno la stessa varianza
-Non si può rifiutare l'ipotesi nulla e assumendo che le distribuzioni abbiano la stessa varianza si procede con t-test
+Non si può rifiutare l'ipotesi nulla e assumendo che le distribuzioni abbiano la stessa varianza si procede con t-test (con varianza uguale)
 ```{r}
 var(lr2.folds); var(rf.folds)
 # F-test 
 var.test(lr2.folds, rf.folds)
+# t-test con assunzione di varianza uguale
 t.test(lr2.folds, rf.folds, var.equal=T)
 ```
 
@@ -405,10 +291,41 @@ Bootstrap t.test
 library(MKinfer)
 boot.t.test(lr2.folds, rf.folds, R=1000)
 ```
+
 Paired test, dovrebbe produrre i migliori risultati in quanto le misurazioni delle due distribuzioni si riferiscono agli stessi fold della cross validation
 ```{r}
-t.test(lr2.folds, rf.folds, paired=TRUE) # or
+t.test(lr2.folds, rf.folds, paired=TRUE)
+#equivalente
 t.test(lr2.folds - rf.folds, mu=0) 
+```
+
+Tutti i test effettutati sulle due distribuzioni evidenziano che l'ipotesi nulla deve essere rifiutata e che i valori medi di AUC per i due classificatori sono statisticamente differenti
+
+
+
+Infine, si osserva che "Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred" è un messaggio di warning che potrebbe essere causato dal problema della separazione perfetta.
+Una possibile soluzione al problema è la regressione logistica penalizzata (elastic net)
+```{r}
+aidaTrain$Failed = as.numeric(aidaTrain$Failed)-1
+library(safeBinaryRegression)
+
+lr.fit = safeBinaryRegression::glm(Failed ~ .,data=aidaTrain, family=binomial, separation="find")
+summary(lr.fit)
+
+library("brglm2")
+library("detectseparation")
+x <- subset(aidaTrain, select=-c(Failed))
+y <- aidaTrain$Failed
+
+detectSeparation(x, y, family=binomial(logit))
+
+lr.fit <- glm(Failed ~ ., data = aidaTrain,
+                    family = binomial("logit"),
+              method = "detect_separation")
+lr.fit
+
+lr.pred = predict(lr.fit, newdata=aidaTest, type="response")
+lr.pred = factor(ifelse(lr.pred>=0.5, 1, 0), levels=levels(aidaTest$Failed))
 ```
 
 

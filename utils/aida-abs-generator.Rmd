@@ -30,6 +30,7 @@ Per ogni record del dataframe, vengono creati tre record:
   - uno con i campi relativi a due anni precedenti (-2)
 ```{r}
 list = list()
+act_vector <- c('Active','Active (default of payments)','Active (receivership)')
 
 i=1
 
@@ -48,7 +49,7 @@ for (row in 1:nrow(aida)){
   tax.code = aida.row["Tax.code.number"]
   incorporation.year = aida.row["Incorporation.year"]
   
- list[[i]] <- c(last.year,
+  list[[i]] <- c(last.year,
                 incorporation.year,
                 company.name,
                 file,
@@ -83,9 +84,12 @@ for (row in 1:nrow(aida)){
                 aida.row["Total.assets.turnover.(times)Last.avail..yr"],
                 aida.row["Total.assetsth.EURLast.avail..yr"])
  
- i=i+1;
+  i=i+1;
+  
+  if(legal.status %!in% act_vector)
+    legal.status='Active'
  
- list[[i]] <- c(last.year-1,
+  list[[i]] <- c(last.year-1,
                 incorporation.year,
                 company.name,
                 file,
@@ -121,7 +125,7 @@ for (row in 1:nrow(aida)){
                 aida.row["Total.assetsth.EURYear.-.1"]
                 )
 
- i=i+1
+  i=i+1
  
   list[[i]] = c(last.year-2,
                 incorporation.year,
