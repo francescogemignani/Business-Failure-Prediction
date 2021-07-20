@@ -20,6 +20,7 @@ library(lattice)
 library(data.table)
 library(caret)
 library(ROCR)
+library(car)
 ```
 
 ```{r}
@@ -82,7 +83,6 @@ cat(colnames(data)[14], "-", colnames(data)[7]) #remove Current.ratio
 Si guarda al valore di VIF, le variabili con valore alto devono essere rimosse
 
 ```{r}
-library(car)
 noresampling = trainControl(method="none")
 
 lr.fit = glm(Failed ~ ., data = na.omit(data), family=binomial("logit")) 
@@ -105,7 +105,10 @@ aidaTest  <- data[-trainIndex,]
 aidaTrain <- na.omit(aidaTrain)
 aidaTest <- na.omit(aidaTest)
 
-#Si rimuove da subito il valori per elimianre il problema della multicollinearità tra le variabili
+aidaTest2014 = aidaTest[aidaTest$Year == 2014]
+aidaTest2015 = aidaTest[aidaTest$Year == 2015]
+
+#Si rimuove da subito il valori per eliminare il problema della multicollinearità tra le variabili
 aidaTrain <- subset(aidaTrain, select = -c(Year, ROA, Net.financial.positionth, Cash.Flowth, Current.ratio))
 
 table(aidaTrain$Failed)
@@ -126,26 +129,58 @@ summary(lr.fit)
 ```
 
 
-Valutazione delle performance sul test set
+
+Valutazione delle performance sul test set (entrambi gli anni, 2014, 2015)
 ```{r}
 lr.pred = predict(lr.fit, newdata = aidaTest, type="raw")
 lr.prob = predict(lr.fit, newdata = aidaTest, type="prob") # predict_proba
 lr.pconf = lr.prob[,2]
 
 confusionMatrix(lr.pred, aidaTest$Failed, positive="1", mode = "prec_recall")
+
+lr.pred2014 = predict(lr.fit, newdata = aidaTest2014, type="raw")
+lr.prob2014 = predict(lr.fit, newdata = aidaTest2014, type="prob") 
+lr.pconf2014 = lr.prob2014[,2]
+
+confusionMatrix(lr.pred2014, aidaTest2014$Failed, positive="1", mode = "prec_recall")
+
+lr.pred2015 = predict(lr.fit, newdata = aidaTest2015, type="raw")
+lr.prob2015 = predict(lr.fit, newdata = aidaTest2015, type="prob") 
+lr.pconf2015 = lr.prob2015[,2]
+
+confusionMatrix(lr.pred2015, aidaTest2015$Failed, positive="1", mode = "prec_recall")
 ```
 
 
 Calibration plot
 ```{r}
+cal_data2014 = calibration(aidaTest2014$Failed ~ lr.pconf2014, class="1")
+cal_data2015 = calibration(aidaTest2015$Failed ~ lr.pconf2015, class="1")
 cal_data = calibration(aidaTest$Failed ~ lr.pconf, class="1")
-xyplot(cal_data)
+
+plot(cal_data2014$data$midpoint, cal_data2014$data$Percent, type="o", xlab="Bin Midpoint", ylab="Observed Event Percentage")
+
+points(cal_data2015$data$midpoint, cal_data2015$data$Percent, col="red", pch="*")
+lines(cal_data2015$data$midpoint, cal_data2015$data$Percent, col="red")
+
+points(cal_data$data$midpoint, cal_data$data$Percent, col="orange", pch="+")
+lines(cal_data$data$midpoint, cal_data$data$Percent, col="orange")
+
+#Perfettamente calibrato
+abline(a=0, b=1, lwd=0.5, lty=2)
+
+legend("topleft", legend=c("2014","2015","2014+2015", "Perfectly Calibrated"),
+       col=c("black","red","orange", "black"),
+        pch=c("o","*","+",""),lty=c(1,2,3,2))
+
 ```
 
 
 Si valutano alcune metriche al variare del cutoff, il cutoff dove si hanno valori migliori è circa 0.5 (quello di default)
 ```{r}
 lr.prediction = prediction(lr.pconf, aidaTest$Failed)
+lr.prediction2014 = prediction(lr.pconf2014, aidaTest2014$Failed)
+lr.prediction2015 = prediction(lr.pconf2015, aidaTest2015$Failed)
 
 lr.acc = performance(lr.prediction, "acc"); plot(lr.acc)
 
@@ -154,7 +189,8 @@ lr.tpr = performance(lr.prediction, "tpr"); plot(lr.tpr)
 lr.f1 = performance(lr.prediction, "f"); plot(lr.f1)
 
 lr.prec = performance(lr.prediction, "prec"); plot(lr.prec)
-
+```
+```{r}
 #ROC Curve
 lr.roc = performance(lr.prediction, "tpr", "fpr")
 plot(lr.roc, colorize=T); abline(a=0, b= 1)
@@ -163,6 +199,22 @@ plot(lr.roc, colorize=T); abline(a=0, b= 1)
 o = performance(lr.prediction, "auc")
 o@y.values[[1]]
 ```
+```{r}
+library(pROC)
+
+par(pty="s")
+roc(aidaTest2014$Failed, lr.pconf2014, plot=TRUE, legacy.axes=TRUE,
+      xlab="False Positive Rate", ylab="True Positive Rate", print.auc=TRUE, col="blue")
+roc(aidaTest2015$Failed, lr.pconf2015, plot=TRUE, legacy.axes=TRUE, add=TRUE, col="red",
+      xlab="False Positive Rate", ylab="True Positive Rate", print.auc=TRUE, print.auc.y=0.45)
+roc(aidaTest$Failed, lr.pconf, plot=TRUE, legacy.axes=TRUE, add=TRUE, col="orange",
+      xlab="False Positive Rate", ylab="True Positive Rate", print.auc=TRUE, print.auc.y=0.4)
+
+legend("bottomright", legend=c("2014","2015","2014+2015"),
+       col=c("blue","red","orange"), lwd=4)
+par(pty="m")
+```
+
 
 
 ```{r}
@@ -197,6 +249,21 @@ Dettagli su 5x10 fold di cv per il valore di AUC
 lr2.folds = lr2.fit$resample[['ROC']]
 mean(lr2.folds) # media dei folds
 ```
+
+
+Intervallo di confidenza per l'AUC media
+```{r}
+library(boot)
+mean.pos = function(d, pos) mean(d[pos])
+b = boot(lr2.folds, mean.pos, R=1000)
+plot(b)
+
+# CI basato su bias correction and accelleration (best method)
+bci = boot.ci(b, conf=0.95, type="bca")
+bci
+bci$bca[4:5]
+```
+
 
 Performance sul test set
 ```{r}
@@ -262,6 +329,8 @@ library(BSDA)
 
 plot(density(lr2.folds),xlim=c(0.5,0.7))
 lines(density(rf.folds),col=2)
+
+boxplot(lr2.folds, rf.folds)
 ```
 
 Test di normalità delle due distribuzioni con Shapiro test
@@ -303,29 +372,17 @@ Tutti i test effettutati sulle due distribuzioni evidenziano che l'ipotesi nulla
 
 
 
+Intervalli di confidenza per i coefficienti
+```{r}
+lr.fit = glm(best.formula, data=aidaTrain, family=binomial("logit"))
+
+confint(lr.fit)
+```
+
+
+
 Infine, si osserva che "Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred" è un messaggio di warning che potrebbe essere causato dal problema della separazione perfetta.
 Una possibile soluzione al problema è la regressione logistica penalizzata (elastic net)
-```{r}
-aidaTrain$Failed = as.numeric(aidaTrain$Failed)-1
-library(safeBinaryRegression)
 
-lr.fit = safeBinaryRegression::glm(Failed ~ .,data=aidaTrain, family=binomial, separation="find")
-summary(lr.fit)
-
-library("brglm2")
-library("detectseparation")
-x <- subset(aidaTrain, select=-c(Failed))
-y <- aidaTrain$Failed
-
-detectSeparation(x, y, family=binomial(logit))
-
-lr.fit <- glm(Failed ~ ., data = aidaTrain,
-                    family = binomial("logit"),
-              method = "detect_separation")
-lr.fit
-
-lr.pred = predict(lr.fit, newdata=aidaTest, type="response")
-lr.pred = factor(ifelse(lr.pred>=0.5, 1, 0), levels=levels(aidaTest$Failed))
-```
 
 
