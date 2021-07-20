@@ -14,7 +14,7 @@ library(glmnet)
 ```
 
 ```{r}
-aida = fread("aida_preproc.csv")
+aida = fread("../aida_abs.csv")
 
 # Make the operator
 '%!in%' <- function(x,y)!('%in%'(x,y))
@@ -35,13 +35,53 @@ drops <- c('Company.name','File','Tax.code.number','Legal.form','Legal.status','
 aida <- subset(aida, select = -c(Company.name,ATECO.2007code,File,Tax.code.number,Legal.form,Legal.status,Comune.ISTAT.code,Region,Province))
 ```
 
-Data Partitioning
+Get 2014 and 2015 data because the distribution considering Failed is balanced 
 ```{r}
-#create subsample of the dataset
-sample = rbinom(nrow(aida), 1, .1)           
-data = aida[sample==1,]
+data = na.omit(aida[aida$Year %in% c(2014,2015)])
+table(data$Failed)
 ```
 
+1) Un problema dei modelli lineari è l'alta correlazione tra le variabili indipendenti,
+prima di costruire il regresore logistico si cerca di escludere le variabili con correlazione > di una certa soglia
+
+  - In caso di correlazione tra due variabili, si elimina quella con VIF (Variance Inflation Factor) maggiore
+  - In alternativa, il metodo findCorrelation della libreria caret, restituisce direttamente le variabili da escludere sulla base della mean absolute             correlation ("https://www.rdocumentation.org/packages/caret/versions/6.0-88/topics/findCorrelation"), oltre che le coppie di variabili che superano la        soglia prestabilita
+
+```{r}
+corr.matrix=cor(subset(data, select = -c(Failed)))
+#corr.matrix[abs(corr.matrix) < 0.8] = NA
+#View(corr.matrix)
+to.remove = findCorrelation(corr.matrix, cutoff = .8, verbose = TRUE, names=TRUE)
+to.remove
+#data = subset(data, select = -c(Cash.Flowth, EBITDAth, Total.assetsth, ROA, Liquidity.ratio))
+```
+
+```{r}
+cat(colnames(data)[17], "-", colnames(data)[25], "\n") #remove Total.assetsth
+cat(colnames(data)[25], "-", colnames(data)[4], "\n") #remove Total.assetsth
+cat(colnames(data)[4], "-", colnames(data)[15], "\n") #remove Net.financial.positionth
+cat(colnames(data)[15], "-", colnames(data)[18], "\n") #remove Net.financial.positionth
+cat(colnames(data)[18], "-", colnames(data)[16], "\n") #remove Net.working.capitalth 
+cat(colnames(data)[19], "-", colnames(data)[21], "\n") #remove ROA
+cat(colnames(data)[14], "-", colnames(data)[7], "\n") #remove Current.ratio
+```
+
+Si guarda al valore di VIF, le variabili con valore alto devono essere rimosse
+
+```{r}
+noresampling = trainControl(method="none")
+
+lr.fit = glm(Failed ~ ., data = na.omit(data), family=binomial("logit")) 
+
+sort(vif(lr.fit))
+```
+
+Remove useless columns
+```{r}
+data <- subset(data, select = -c(Total.assetsth, Net.financial.positionth, Net.working.capitalth, ROA, Current.ratio, Year))
+```
+
+Partitioning dataset 
 ```{r}
 set.seed(42)
 trainIndex <- createDataPartition(data$Failed, p = .7, 
@@ -52,45 +92,6 @@ aidaTrain <- data[ trainIndex,]
 aidaTest  <- data[-trainIndex,]
 
 table(aidaTrain$Failed)
-```
-
-1) Un problema dei modelli lineari è l'alta correlazione tra le variabili indipendenti,
-prima di costruire il regresore logistico si cerca di escludere le variabili con correlazione > di una certa soglia
-
-  - In caso di correlazione tra due variabili, si elimina quella con VIF (Variance Inflation Factor) maggiore
-  - In alternativa, il metodo findCorrelation della libreria caret, restituisce direttamente le variabili da escludere sulla base della mean absolute             correlation ("https://www.rdocumentation.org/packages/caret/versions/6.0-88/topics/findCorrelation"), oltre che le coppie di variabili che superano la        soglia prestabilita
-
-```{r}
-corr.matrix=cor(subset(na.omit(aida), select = -c(Failed)))
-#corr.matrix[abs(corr.matrix) < 0.8] = NA
-#View(corr.matrix)
-to.remove = findCorrelation(corr.matrix, cutoff = .8, verbose = TRUE, names=TRUE)
-to.remove
-#data = subset(data, select = -c(Cash.Flowth, EBITDAth, Total.assetsth, ROA, Liquidity.ratio))
-```
-
-Si guarda al valore di VIF, le variabili con valore alto devono essere rimosse
-
-```{r}
-library(car)
-noresampling = trainControl(method="none")
-
-lr.fit = glm(Failed ~ ., data = na.omit(aidaTrain), family=binomial("logit")) 
-
-vif(lr.fit)
-```
-
-Remove useless columns
-```{r}
-aidaTrain <- subset(aidaTrain, select = -c(ROA, Number.of.employees, Cash.Flowth, Liquidity.ratio, Net.working.capitalth))
-aidaTest <- subset(aidaTest, select = -c(ROA, Number.of.employees, Cash.Flowth, Liquidity.ratio, Net.working.capitalth))
-```
-
-Undersampling dataset
-```{r}
-down.aidaTrain <- downSample(x = aidaTrain, y = aidaTrain$Failed)
-down.aidaTrain <- subset(down.aidaTrain, select = -c(Class))
-table(down.aidaTrain$Failed)  
 ```
 
 Elastic Net Regularization using glmnet 
@@ -119,6 +120,7 @@ confusionMatrix(factor(elas.pred), factor(y.test), positive="1", mode = "prec_re
 
 ```
 
+0,5 is the best cutoff to use, so we're not modifying it
 ```{r}
 # using ROCR for metrics at cutoff
 library(ROCR)
@@ -137,18 +139,9 @@ plot(elas.roc, colorize=T, main = "AUC for lambda.min"); abline(a=0, b= 1)
 cat("AUC value: ", performance(elas.prediction, "auc")@y.values[[1]])
 ```
 
-Set cutoff to 0.2 (as we can see from the charts above)
-```{r}
-cutoff = 0.2
-elas.pred.cutoff = factor(ifelse(elas.prob>=cutoff, 1, 0), levels=levels(aidaTest$Failed))
-confusionMatrix(elas.pred.cutoff, aidaTest$Failed, positive="1", mode = "prec_recall")
-```
 
-Using LAMBDA.1SE (best)
+Using LAMBDA.1SE 
 ```{r}
-x.test <- aidaTest[, 1:(ncol(aidaTest)-1)]
-y.test <- aidaTest$Failed
-
 # predicted confidence on validation set
 elas.pred.1se = predict(elasticFit, newx = data.matrix(x.test), type="class", s = "lambda.1se")
 elas.prob.1se = predict(elasticFit, newx = data.matrix(x.test), type="response", s = "lambda.1se") #as predict proba
@@ -157,6 +150,7 @@ confusionMatrix(factor(elas.pred.1se), factor(y.test), positive="1", mode = "pre
 
 ```
 
+Best cutoff still is 0,5
 ```{r}
 # using ROCR for metrics at cutoff
 library(ROCR)
@@ -175,12 +169,6 @@ plot(elas.roc.1se, colorize=T, main = "AUC for lambda.1se"); abline(a=0, b= 1)
 cat("AUC value: ", performance(elas.prediction.1se, "auc")@y.values[[1]])
 ```
 
-Set cutoff to 0.2 (as we can see from the charts above)
-```{r}
-cutoff = 0.2
-elas.pred.cutoff.1se = factor(ifelse(elas.prob.1se>=cutoff, 1, 0), levels=levels(aidaTest$Failed))
-confusionMatrix(elas.pred.cutoff.1se, aidaTest$Failed, positive="1", mode = "prec_recall")
-```
 
 We're going to use the model with the lambda.min and cutoff = 0.2 to predict whether companies from 2018 failed or not. 
 
