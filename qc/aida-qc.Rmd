@@ -122,12 +122,14 @@ lr.fit = train(Failed ~ ., data = aidaTrain,
                method = "glmStepAIC", trControl=trainControl(method="none"),
                family=binomial(logit))
 
-best.formula = formula(lr.fit) #Si salva la miglior formula
+#Si salva la miglior formula
+best.formula = as.formula(Failed ~ Incorporation.year + `Banks/turnover` + Cost.of.debit + `Current.liabilities/Tot.ass` + `Debt/equity.ratio`
+               + `EBITDA/Vendite` + `Interest/Turnover` + Liquidity.ratio + Net.working.capitalth + Number.of.employees + `Profit.(loss)th` +
+               ROE + ROI + ROS + `Total.assets.turnover.(times)`)
 
 lr.fit
 summary(lr.fit)
 ```
-
 
 
 Valutazione delle performance sul test set (entrambi gli anni 2014 e 2015, 2013)
@@ -217,10 +219,13 @@ featurePlot(x=data.frame(lr.pconf), y=aidaTest$Failed, plot='density', auto.key 
 Logistic Regression usando cross validation con custom summary function sullo stesso training set,
 gli attributi usati sono quelli risultati dalla procedure glmStepAIC
 ```{r}
+set.seed(42)
 
 lev = c("class0", "class1")
 aidaTrain$Failed = factor(aidaTrain$Failed); levels(aidaTrain$Failed) = lev
 aidaTest$Failed = factor(aidaTest$Failed); levels(aidaTest$Failed) = lev
+
+aidaTest2013$Failed = factor(aidaTest2013$Failed); levels(aidaTest2013$Failed) = lev
 
 rcv = trainControl(method="repeatedcv",
                    repeats=5, number=10,
@@ -253,6 +258,15 @@ plot(b)
 bci = boot.ci(b, conf=0.95, type="bca")
 bci
 bci$bca[4:5]
+
+bci = boot.ci(b, conf=0.95, type="basic")
+bci
+bci$basic[4:5]
+
+# CI based on normal fitting
+bci = boot.ci(b, conf=0.95, type="norm")
+bci
+bci$normal[2:3]
 ```
 
 
@@ -297,20 +311,45 @@ rf.folds = rf.fit$resample[['ROC']]
 mean(rf.folds) # media dei folds
 ```
 
+```{r}
+b = boot(rf.folds, mean.pos, R=1000)
+plot(b)
+
+# CI basato su bias correction and accelleration (best method)
+bci = boot.ci(b, conf=0.95, type="bca")
+bci
+bci$bca[4:5]
+
+bci = boot.ci(b, conf=0.95, type="basic")
+bci
+bci$basic[4:5]
+
+# CI based on normal fitting
+bci = boot.ci(b, conf=0.95, type="norm")
+bci
+bci$normal[2:3]
+```
+
+
 Performance sul test set
 ```{r}
-lr.pred = predict(rf.fit, newdata = aidaTest, type="raw")
-lr.prob = predict(rf.fit, newdata = aidaTest, type="prob") #predict_proba
-lr.pconf = lr.prob[,2]
+rf.pred = predict(rf.fit, newdata = aidaTest, type="raw")
+rf.prob = predict(rf.fit, newdata = aidaTest, type="prob")
+rf.pconf = rf.prob[,2]
 
-confusionMatrix(lr.pred, aidaTest$Failed, positive="class1", mode = "prec_recall")
+confusionMatrix(rf.pred, aidaTest$Failed, positive="class1", mode = "prec_recall")
 
-lr.prediction = prediction(lr.pconf, aidaTest$Failed)
+rf.pred2013 = predict(rf.fit, newdata = aidaTest2013, type="raw")
+rf.prob2013 = predict(rf.fit, newdata = aidaTest2013, type="prob") 
+rf.pconf2013 = rf.prob2013[,2]
+
+confusionMatrix(rf.pred2013, aidaTest2013$Failed, positive="class1", mode = "prec_recall")
 
 
+rf.prediction = prediction(rf.pconf, aidaTest$Failed)
 #lr.prediction = prediction(lr2.fit$pred$class1, lr2.fit$pred$obs) #Per valutare la ROC curve sui dati di training
 
-lr.roc = performance(lr.prediction, "tpr", "fpr")
+rf.roc = performance(rf.prediction, "tpr", "fpr")
 plot(lr.roc, colorize=T); abline(a=0, b= 1)
 ```
 
@@ -321,7 +360,11 @@ library(BSDA)
 plot(density(lr2.folds),xlim=c(0.5,0.7))
 lines(density(rf.folds),col=2)
 
-boxplot(lr2.folds, rf.folds)
+boxplot(lr2.folds, rf.folds,
+        xlab="Modello",
+        ylab="AUC",
+        names=c("glm","rf")
+        )
 ```
 
 Test di normalità delle due distribuzioni con Shapiro test
@@ -365,9 +408,27 @@ Tutti i test effettutati sulle due distribuzioni evidenziano che l'ipotesi nulla
 
 Intervalli di confidenza per i coefficienti
 ```{r}
-lr.fit = glm(best.formula, data=aidaTrain, family=binomial("logit"))
+lr = glm(best.formula, data=aidaTrain, family=binomial("logit"))
 
-confint(lr.fit)
+confint(lr)
+```
+
+Statistical Test of Rating - Hosmer-Lçemeshow test
+
+Per ogni bin (parametro g) di probability of default si confronta il numero di valori attesi con il numero dei valori osservati
+```{r}
+library(ResourceSelection)
+
+hl = hoslem.test(lr.fit$finalModel$y, fitted(lr.fit$finalModel), g=11)
+hl
+
+cbind(hl$expected, hl$observed)
+```
+```{r}
+hl = hoslem.test(lr$y, fitted(lr), g=21)
+hl
+
+cbind(hl$expected, hl$observed)
 ```
 
 
