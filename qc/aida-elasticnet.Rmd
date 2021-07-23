@@ -259,3 +259,18 @@ elas.2013.roc = performance(elas.2013.prediction, "tpr", "fpr")
 plot(elas.2013.roc, colorize=T, main = "AUC for lambda.1se"); abline(a=0, b= 1)
 cat("AUC value: ", performance(elas.2013.prediction, "auc")@y.values[[1]])
 ```
+
+
+```{r}
+library(pROC)
+
+par(pty="s")
+roc(aidaTest2013$Failed, elas.2013.prob, plot=TRUE, legacy.axes=TRUE,
+      xlab="False Positive Rate", ylab="True Positive Rate", print.auc=TRUE, col="red")
+roc(aidaTest$Failed, elas.prob, plot=TRUE, legacy.axes=TRUE, add=TRUE, col="blue",
+      xlab="False Positive Rate", ylab="True Positive Rate", print.auc=TRUE, print.auc.y=0.45)
+
+legend("bottomright", legend=c("2013", "2014+2015"),
+       col=c("red","blue"), lwd=4)
+par(pty="m")
+```
