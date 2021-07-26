@@ -5,7 +5,7 @@ output: html_notebook
 
 ```{r} 
 library
-#install.packages("caret", dep = TRUE)
+#install.packages("glasso")
 library(lattice)
 library(ggplot2)
 library(data.table)
@@ -18,7 +18,8 @@ library(car)
 ```
 
 ```{r}
-aida = fread("../aida_abs.csv")
+aida.abs.path <- "./dataset/aida_abs.csv"
+aida <- fread(aida.abs.path)
 
 # Make the operator
 '%!in%' <- function(x,y)!('%in%'(x,y))
