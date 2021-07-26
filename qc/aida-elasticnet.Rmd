@@ -11,6 +11,9 @@ library(ggplot2)
 library(data.table)
 library(caret)
 library(glmnet)
+library(MASS)
+library(glasso)
+library(sAIC)
 ```
 
 ```{r}
@@ -78,7 +81,8 @@ sort(vif(lr.fit))
 
 Remove useless columns
 ```{r}
-data <- subset(data, select = -c(Total.assetsth, Net.financial.positionth, Net.working.capitalth, ROA, Current.ratio, Year))
+#data <- subset(data, select = -c(Total.assetsth, Net.financial.positionth, Net.working.capitalth, ROA, Current.ratio, Year))
+data <- subset(data, select = -c(Year, ROA, Net.financial.positionth, Cash.Flowth, Current.ratio))
 ```
 
 Partitioning dataset 
@@ -102,8 +106,13 @@ Elastic Net Regularization using glmnet
 ```{r}
 x <- aidaTrain[, 1:(ncol(aidaTrain)-1)]
 y <- aidaTrain$Failed
-elasticFit <- cv.glmnet(data.matrix(x), y, family = "binomial", type.measure = 'mse', nfolds = 5) #returns the best model using CV 
+elasticFit <- cv.glmnet(data.matrix(x), y, family = "binomial", type.measure = 'mse', nfolds = 5, resample.seed = NULL) #returns the best model using CV 
 ```
+
+```{r}
+coef(elasticFit, s = "lambda.min")
+```
+
 
 lambda.min is the value of lambda that gives the minimum mean cross-validated error
 lambda.1se is the value of lambda that gives the most regularized model 
@@ -226,6 +235,7 @@ elas.2013.prec = performance(elas.2013.prediction, "prec"); plot(elas.2013.prec,
 elas.2013.roc = performance(elas.2013.prediction, "tpr", "fpr")
 plot(elas.2013.roc, colorize=T, main = "AUC for lambda.min"); abline(a=0, b= 1)
 cat("AUC value: ", performance(elas.2013.prediction, "auc")@y.values[[1]])
+ZIJBPURKPHST 
 ```
 
 
@@ -274,3 +284,4 @@ legend("bottomright", legend=c("2013", "2014+2015"),
        col=c("red","blue"), lwd=4)
 par(pty="m")
 ```
+
