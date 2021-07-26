@@ -14,6 +14,7 @@ library(glmnet)
 library(MASS)
 library(glasso)
 library(sAIC)
+library(car)
 ```
 
 ```{r}
@@ -81,8 +82,7 @@ sort(vif(lr.fit))
 
 Remove useless columns
 ```{r}
-#data <- subset(data, select = -c(Total.assetsth, Net.financial.positionth, Net.working.capitalth, ROA, Current.ratio, Year))
-data <- subset(data, select = -c(Year, ROA, Net.financial.positionth, Cash.Flowth, Current.ratio))
+data <- subset(data, select = -c(Total.assetsth, Net.financial.positionth, Net.working.capitalth, ROA, Current.ratio, Year))
 ```
 
 Partitioning dataset 
@@ -235,7 +235,6 @@ elas.2013.prec = performance(elas.2013.prediction, "prec"); plot(elas.2013.prec,
 elas.2013.roc = performance(elas.2013.prediction, "tpr", "fpr")
 plot(elas.2013.roc, colorize=T, main = "AUC for lambda.min"); abline(a=0, b= 1)
 cat("AUC value: ", performance(elas.2013.prediction, "auc")@y.values[[1]])
-ZIJBPURKPHST 
 ```
 
 
@@ -246,8 +245,8 @@ x.2013.test <- aidaTest2013[, 1:(ncol(aidaTest2013)-1)]
 y.2013.test <- aidaTest2013$Failed
 
 # predicted confidence on validation set
-elas.2013.pred = predict(elasticFit, newx = data.matrix(x.2013.test), type="class", s = "lambda.1se")
-elas.2013.prob = predict(elasticFit, newx = data.matrix(x.2013.test), type="response", s = "lambda.1se") #as predict proba
+elas.2013.pred.1se = predict(elasticFit, newx = data.matrix(x.2013.test), type="class", s = "lambda.1se")
+elas.2013.prob.1se = predict(elasticFit, newx = data.matrix(x.2013.test), type="response", s = "lambda.1se") #as predict proba
 # built-in metrics
 confusionMatrix(factor(elas.2013.pred), factor(y.2013.test), positive="1", mode = "prec_recall")
 ```
@@ -255,7 +254,7 @@ confusionMatrix(factor(elas.2013.pred), factor(y.2013.test), positive="1", mode 
 ```{r}
 # using ROCR for metrics at cutoff
 library(ROCR)
-elas.2013.prediction = prediction(elas.2013.prob, aidaTest2013$Failed)
+elas.2013.prediction = prediction(elas.2013.prob.1se, aidaTest2013$Failed)
 # acc at cutoff
 elas.2013.acc = performance(elas.2013.prediction, "acc"); plot(elas.2013.acc, main = "Accuracy on 2013 test data for lambda.1se")
 # tpr (recall) at cutoff
@@ -275,9 +274,9 @@ cat("AUC value: ", performance(elas.2013.prediction, "auc")@y.values[[1]])
 library(pROC)
 
 par(pty="s")
-roc(aidaTest2013$Failed, elas.2013.prob, plot=TRUE, legacy.axes=TRUE,
+roc(aidaTest2013$Failed, elas.2013.prob.1se, plot=TRUE, legacy.axes=TRUE,
       xlab="False Positive Rate", ylab="True Positive Rate", print.auc=TRUE, col="red")
-roc(aidaTest$Failed, elas.prob, plot=TRUE, legacy.axes=TRUE, add=TRUE, col="blue",
+roc(aidaTest$Failed, elas.prob.1se, plot=TRUE, legacy.axes=TRUE, add=TRUE, col="blue",
       xlab="False Positive Rate", ylab="True Positive Rate", print.auc=TRUE, print.auc.y=0.45)
 
 legend("bottomright", legend=c("2013", "2014+2015"),
