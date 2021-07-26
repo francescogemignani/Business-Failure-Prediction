@@ -53,7 +53,7 @@ Filtro le età delle aziende fallite per un intervallo di tempo
 # Filtro tutte le aziende fallite
 df.failed <- df[df$Failed=='Yes',]
 
-# Confrontiamo la distribuzione dell'età delle aziende fallite su 2 anni: 2015 e 2016
+# Confrontiamo la distribuzione dell'età delle aziende fallite su 2 anni: 2010 e 2011
 table(df.failed$Year)
 df.failed <- df.failed[df.failed$Year == 2010 | df.failed$Year == 2011 ,]
 ```
@@ -73,10 +73,6 @@ A.ctd Confronto la distribuzione dell'età delle aziende fallite su 2 anni
 # Considero l'età di tutte le aziende fallite negli anni selezionati
 age.y1.failed <- df.failed[df.failed$Year == 2010,'Age']
 age.y2.failed <- df.failed[df.failed$Year == 2011,'Age']
-
-# Il ks test ritorna se le due distribuzioni sono differenti
-ks_res = ks.test(age.y1.failed,age.y2.failed)
-ks_res
 
 # Il test restituisce un p-value =1  nell'ipotesi alternativa 'greater'. Ciò indica che la media dell'età delle aziende fallite nel 2015 è superiore alla media dell'età delle aziende fallite nel 2016. Cioè, le aziende fallite nel 2015 sono in media più vecchie di quelle fallite nel 2016.
 t.test(age.y1.failed,age.y2.failed)
@@ -104,8 +100,6 @@ for(form.name in company.forms){
   age.y2.failed <- df.failed[df.failed$Year == 2011 & df.failed$Legal.form==form.name ,'Age']
   
   if( length(age.y1.failed)>100 & length(age.y2.failed)>100 ){
-    
-    print(ks.test(age.y1.failed,age.y2.failed))
   
     print(t.test(age.y1.failed,age.y2.failed))
     print(t.test(age.y1.failed,age.y2.failed,alternative = 'less'))
@@ -199,15 +193,15 @@ for (y in unique(df.failed$Year)){
 
 A.plus.2: FRIEDMAN test -  confronto la distribuzione dell'età delle aziende fallite in un periodo superiore a 2 anni
 ```{r}
-
 # Provo FRIEDMAN non-parametric test
+df.failed <- df[df$Failed=='Yes',]
 
 #seleziono alcuni anni (più numerosi)
-y1 <- 2009
-y2 <- 2010
-y3 <- 2011
-y4 <- 2012
-y5 <- 2013
+y1 <- 2010
+y2 <- 2011
+y3 <- 2012
+y4 <- 2013
+y5 <- 2014
 
 #considero solo le età delle aziende fallite negli anni scelti
 age.y1.failed <- df.failed[df.failed$Year == y1,'Age']
@@ -217,7 +211,7 @@ age.y4.failed <- df.failed[df.failed$Year == y4,'Age']
 age.y5.failed <- df.failed[df.failed$Year == y5,'Age']
 
 # minimo numero m di aziende fallite nei 5 anni scelti
-m <- min( length(age.y1.failed),length(age.y2.failed), length(age.y3.failed), length(age.y4.failed), length(age.y5.failed) ) -1
+m <- min( length(age.y1.failed),length(age.y2.failed), length(age.y3.failed), length(age.y4.failed), length(age.y5.failed) )
 
 # seleziono casualmente l'età di 'm' aziende fallite in quell anno 
 random.age.y1.failed <- age.y1.failed[ sample(length(age.y1.failed),m)] 
@@ -227,7 +221,7 @@ random.age.y4.failed <- age.y4.failed[ sample(length(age.y4.failed),m)]
 random.age.y5.failed <- age.y5.failed[ sample(length(age.y5.failed),m)] 
 
 # Friedman non-parametric test
-x <- data.frame(y1=random.age.y1.failed, y2=random.age.y2.failed, y3=random.age.y3.failed, y4=random.age.y4.failed, y5=random.age.y5.failed)
+x <- data.frame('_2010'=random.age.y1.failed, '_2011'=random.age.y2.failed, '_2012'=random.age.y3.failed, '_2013'=random.age.y4.failed, '_2014'=random.age.y5.failed)
 friedman.test(data.matrix(x))
 
 # Eseguo il Nemenyi test per vedere quali sono le distribuzioni tra loro diverse
@@ -271,7 +265,7 @@ df.failed <- df.failed[df.failed$Year == 2010 | df.failed$Year == 2011 ,]
 Densità della dimensione delle aziende fallite sugli anni selezionati
 ```{r}
 # density of size of failed companies over selected years
-ggplot(data=df.failed, aes(x=Total.assetsth, group=as.factor(Year), fill=as.factor(Year))) +
+ggplot(data=df.failed, aes(x=Total.assetsth, group=Year, fill=as.factor(Year))) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
     ggtitle("Density of Size of Failed Companies Over Time")
@@ -296,7 +290,6 @@ t.test(size.y1.failed,size.y2.failed,alternative = 'greater')
 # Remove data from stack
 rm(size.y1.failed,size.y2.failed)
 
-# RISULTATO
 ```
 
 A.1.ctd Does SIZE change for a specific company form (i.e. SPA,SRL,etc)?
@@ -334,7 +327,6 @@ for(form.name in company.forms){
   rm(size.y1.failed, size.y2.failed)
 }
 
-# RISULTATI
 ```
 
 A.2.ctd Does SIZE change for a specific location (i.e. Tuscany,Lombardy,etc.)?
@@ -372,7 +364,6 @@ for(region.name in company.regions){
   rm(size.y1.failed,size.y2.failed)
 }
 
-# RISULTATI
 ```
 
 A.plus.1: ANOVA test -  confronto la distribuzione delle dimensioni delle aziende fallite in un periodo superiore a 2 anni
@@ -417,11 +408,11 @@ A.plus.2: FRIEDMAN test -  confronto la distribuzione delle dimensioni delle azi
 # FRIEDMAN non-parametric test
 
 #seleziono alcuni anni (più numerosi)
-y1 <- 2009
-y2 <- 2010
-y3 <- 2011
-y4 <- 2012
-y5 <- 2013
+y1 <- 2010
+y2 <- 2011
+y3 <- 2012
+y4 <- 2013
+y5 <- 2014
 
 #considero solo le dimnesioni delle aziende fallite negli anni scelti
 size.y1.failed <- df.failed[df.failed$Year == y1,'Total.assetsth']
@@ -441,7 +432,7 @@ random.size.y4.failed <- size.y4.failed[ sample(length(size.y4.failed),m)]
 random.size.y5.failed <- size.y5.failed[ sample(length(size.y5.failed),m)] 
 
 # Friedman non-parametric test
-x <- data.frame(y1=random.size.y1.failed, y2=random.size.y2.failed, y3=random.size.y3.failed, y4=random.size.y4.failed, y5=random.size.y5.failed)
+x <- data.frame('_2010'=random.size.y1.failed, '_2011'=random.size.y2.failed, '_2012'=random.size.y3.failed, '_2013'=random.size.y4.failed, '_2014'=random.size.y5.failed)
 friedman.test(data.matrix(x))
 
 # Eseguo il Nemenyi test per vedere quali sono le distribuzioni tra loro diverse

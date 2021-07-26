@@ -25,6 +25,7 @@ load(file=aida.path)
 
 # Attribute renaming: sostituisco gli spazzi bianchi con il dot
 colnames(aida) <- gsub(" ",".",colnames(aida))
+head(aida)
 ```
 
 Summary
@@ -34,22 +35,21 @@ skim(aida)
 
 Failed
 ```{r}
-# Add 'Failed' feature to AIDA dataset. It describe if a company is failed or not regardless of the cause. In particular a company with Legal status no active has marked with Failed = Yes,,
-# otherwise Failed = No when has labeled as Active.
+# Aggiungo la variabile 'Failed' al dataframe. La variabile indica se un'azienda è fallita o no, indipendentemente dalla causa. In particolare, un'impresa con Legal status 'no active' (sottostringa) viene etichettata con Failed=Yes, altrimenti Failed=No.
 
-# Missing values don't occour
+# Controllo che legal status non abbia null values
 aida[is.na(aida$Legal.status),]
 
-# Table of Legal status
+# Table di Legal status
 table(aida$Legal.status)*100/nrow(aida)
 
-# Make the operator
+# Creo l'operatore
 '%!in%' <- function(x,y)!('%in%'(x,y))
 
-# Add new empty column
+# Aggiungo la feature vuota
 aida$Failed <- NULL
 
-# For each 'Legal status' which contains 'Active' substring fill in new column 'No' else 'Yes'
+# Per ogni'Legal status' che contiene 'Active' come substring etichetto la variabile 'Failed' come 'No', altrimenti 'Yes'
 act_vector <- c('Active','Active (default of payments)','Active (receivership)')
 aida[aida$Legal.status %in% act_vector,'Failed'] <- 'No'
 aida[aida$Legal.status %!in% act_vector,'Failed'] <- 'Yes'
@@ -57,7 +57,7 @@ aida[aida$Legal.status %!in% act_vector,'Failed'] <- 'Yes'
 aida[is.na(aida$Failed), ]
 aida$Failed <- as.factor(aida$Failed)
 
-# Failed info
+# Table di Failed (% - ratio)
 table(aida$Failed)*100/nrow(aida)
 ```
 
@@ -106,7 +106,16 @@ Legal Form
 aida <- aida[!is.na(aida$Legal.form),]
 ```
 
-Legal Status by Failed
+ATECO
+```{r}
+table(aida$ATECO.Sector.Name)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=ATECO.Sector.Name, fill=Failed)) +
+  geom_bar() +
+  scale_fill_hue(c = 90) 
+```
+
+Legal Status
 ```{r}
 table(aida$Failed)*100/nrow(aida)
 
@@ -115,13 +124,25 @@ ggplot(data=aida, aes(x=Failed, fill=Legal.status)) +
   scale_fill_hue(c = 90) 
 ```
 
-Legal Form by Failed
+Legal Form
 ```{r}
 table(aida$Failed)*100/nrow(aida)
 
 ggplot(data=aida, aes(x=Failed, fill=Legal.form)) +
   geom_bar() +
   scale_fill_hue(c = 90) 
+```
+
+Region
+```{r}
+aida$`Registered.office.address.-.Region`
+table(aida$`Registered.office.address.-.Region`)*100/nrow(aida)
+
+ggplot(data=aida, aes(x=fct_rev(fct_infreq(`Registered.office.address.-.Region`)), fill=`Registered.office.address.-.Region`)) +
+  geom_bar() +
+  scale_fill_hue(c = 40) +
+  theme(legend.position="none") + 
+  coord_flip()
 ```
 
 Legal Status Bar Plot

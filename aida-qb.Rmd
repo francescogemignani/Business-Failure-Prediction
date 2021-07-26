@@ -224,7 +224,7 @@ Discretizzo Size in bins di uguale ampiezza usando il metodo di Freedman-Diaconi
 table(df$Year)
 
 # Seleziono l'anno
-df.yy <- df[df$Year==2017,]
+df.yy <- df[df$Year==2016,]
 
 # Numero di osservazioni in Size (total assetsth)
 size <- df.yy$Total.assetsth
@@ -235,6 +235,7 @@ fdw <- (2*IQR(size)) / (n.obs^(1/3))
 
 # Calcolo il numero di bins
 n.bins <- as.integer((max(size) - min(size)) / fdw)+1
+summary(size)
 ```
 
 B.  What is the distribution of failures wrt SIZE of firms at a specific year?
@@ -259,7 +260,7 @@ size.sum <- cbind(not.failed=size.freq[,1],
 
 Plot the distribution of failures knowing SIZE in the specific year
 ```{r}
-tit <- paste("Year = 2017")
+tit <- paste("Year = 2016")
 
 barplot(size.sum[,4],main = tit, xlab = 'Total.assetsth', ylab = 'P(Failed=Yes | Size=x)' )
 plot(size.sum[,4],type = 'h',main = tit, xlab = 'Total.assetsth', ylab = 'P(Failed=Yes | Size=x)' )

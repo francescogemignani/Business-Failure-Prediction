@@ -49,7 +49,7 @@ table(df$Year)
 df.yy <- df[df$Year == 2018,]
 table(df.yy$Failed)
 
-rm(df)
+#rm(df)
 ```
 
 Some plots of Age in Year 2018
@@ -60,13 +60,13 @@ ggplot(data = df.yy) +
     scale_fill_manual(values=c("#69b3a2", "#404080"))+
     theme_ipsum() +
     labs(fill='Failed') + 
-    ggtitle("Histogram of Company ages in 2017")
+    ggtitle("Histogram of Company ages in 2018")
 
-# density of age between failed and active companies at year 2018
+# density of age between failed and active companies at year 2017
 ggplot(data=df.yy, aes(x=Age, group=Failed, fill=Failed)) +
     geom_density(adjust=1.5, alpha=.4) +
     theme_ipsum() + 
-    ggtitle("Density of Company ages in 2017")
+    ggtitle("Density of Company ages in 2018")
 
 ```
 
@@ -81,7 +81,7 @@ table(df.yy$Failed)*100/nrow(df.yy)
 ks_res = ks.test(age.yy.active,age.yy.failed)
 ks_res
 
-# Il test restituisce un p-value =1  nell'ipotesi alternativa 'greater'. Ciò indica che la media dell'età delle aziende attive è superiore alla media dell'età delle aziende fallite. Quindi, nel 2018, le aziende attive sono in media più vecchie di quelle fallite.
+# Il test restituisce un p-value < 0.05 nel secondo test. Scarto H0 (<=) e vuol dire che nel 2017 le aziende attive sono in media più vecchie di quelle fallite.
 t.test(age.yy.active,age.yy.failed)
 t.test(age.yy.active,age.yy.failed,alternative = 'less')
 t.test(age.yy.active,age.yy.failed,alternative = 'greater')

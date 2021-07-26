@@ -8,7 +8,9 @@ Libraries
 ```{r}
 # install.packages("sjmisc")
 # devtools::install_github("ropensci/skimr")
-#install.packages("data.table")
+#install.packages("tidyverse")
+library(tidyverse)
+library(viridis)
 library(data.table)
 library(skimr)       
 library(ggplot2)      
@@ -26,6 +28,7 @@ df <- fread(aida.abs.path)
 
 # For each attribute name, replace all white space whit dot symbol
 colnames(df) <- gsub(" ",".",colnames(df))
+colnames(df)
 ```
 
 Tipizzazione delle features
@@ -132,7 +135,9 @@ table(df$ATECO.Sector.Name)
 Legal Form
 ```{r}
 # Elimino le aziende che non specificano legal.form
+nrow(df[is.na(df$Legal.form),])/nrow(df)*100
 df <- df[!is.na(df$Legal.form),]
+
 ```
 
 Age
@@ -158,8 +163,9 @@ aida.age$Age <- as.integer(aida.age$Age)
 ```{r}
 # Anomalies
 
-# There are some company with negative age, with Incorporation year greater then Last accounting closing date. We suppose that are digit error. Therefore we remove all that records
+# There are some company with negative age. Therefore we remove all that records
 summary(aida.age$Age)
+
 head(aida.age[aida.age$Age > 35.5,c('Age','Year','Incorporation.year')])
 
 # Remove negative ages
@@ -174,14 +180,15 @@ upper.whisker <- q3 + 1.5*iqr
 
 outliers <- aida.age[aida.age$Age < lower.whisker | aida.age$Age > upper.whisker,'Age']
 table(outliers)
+nrow(aida.age)/length(outliers)
 
 # We decided to don't remove outliers because are not error/noise but companies with higher age. The boxplot shows that the age between the median and the maximum age is sparse.
 
 # export aida.age 
 aida.age <- aida.age[,c('Company.name','Age','Legal.form','ATECO.Sector.Name','Region','Year','Failed')]
-skim(aida.age)
+
 save(aida.age, file="./dataset/aida.age.RData") # R binary format
-rm(aida.age)
+#rm(aida.age)
 ```
 
 Size
@@ -193,6 +200,7 @@ aida.size <- df
 aida.size <- aida.size[!is.na(aida.size$Total.assetsth),]
 summary(aida.size$Total.assetsth)
 ```
+
 ```{r}
 # Anomaly detection
 
@@ -207,6 +215,9 @@ q3 <- quantile(aida.size$Total.assetsth,0.75)
 lower.whisker <- q1 - 1.5*iqr
 upper.whisker <- q3 + 1.5*iqr
 
+outliers <- aida.size[aida.size$Total.assetsth < lower.whisker | aida.size$Total.assetsth > upper.whisker,'Total.assetsth']
+nrow(outliers)/nrow(aida.size)
+
 # Remove all outliers not between [q1-1.5*iqr,q3+1.5*iqr] (external from two whiskers)
 aida.size <- aida.size[aida.size$Total.assetsth >= lower.whisker & aida.size$Total.assetsth <= upper.whisker,]
 
@@ -216,9 +227,39 @@ plot(density(aida.size$Total.assetsth))
 
 # export aida.size 
 aida.size <- aida.size[,c('Company.name','Total.assetsth','Legal.form','ATECO.Sector.Name','Region','Year','Failed')]
-skim(aida.size)
+
 save(aida.size, file="./dataset/aida.size.RData") # R binary format
-rm(aida.size)
+#rm(aida.size)
+```
+
+
+```{r}
+# Boxplot age
+ggplot( data=aida.age, color ='red',aes(x=Age)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6, option="A") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Age boxplot") +
+  xlab("")
+
+# Boxplot size
+ggplot( data=aida.size, color ='red',aes(x=Total.assetsth)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6, option="A") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Size boxplot") +
+  xlab("")
+
+summary(aida.age$Age)
+summary(aida.size$Total.assetsth)
 ```
 
 ROI: Return on Investments
@@ -242,5 +283,5 @@ upper.whisker <- q3 + 1.5*iqr
 # export aida.roi 
 aida.roi <- aida.roi[,c('Company.name','ROI','Legal.form','ATECO.Sector.Name','Region','Year','Failed')]
 skim(aida.roi)
-save(aida.roi, file="./dataset/aida.roi.RData") # R binary format
+#save(aida.roi, file="./dataset/aida.roi.RData") # R binary format
 ```
