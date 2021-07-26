@@ -100,7 +100,7 @@ for(form.name in company.forms){
   df.yy.form <- df.yy[df.yy$Legal.form==form.name,]
   
   # Per quell'anno e per quel legal form, associo ad ogni 'Age' il numero delle aziende fallite e attive
-  age.stat.yy <- table(df.yy[,c('Age','Failed')])
+  age.stat.yy <- table(df.yy.form[,c('Age','Failed')])
 
   # Calcolo la probabilità condizionata
   cond.tab <- (age.stat.yy[,2] / (age.stat.yy[,1]+age.stat.yy[,2]) )

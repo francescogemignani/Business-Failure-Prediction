@@ -5,7 +5,7 @@ output: html_notebook
 
 ```{r} 
 library
-#install.packages("glasso")
+install.packages("sAIC")
 library(lattice)
 library(ggplot2)
 library(data.table)
