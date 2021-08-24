@@ -1,4 +1,4 @@
-#Statistical Methods for Data Science
+# Statistical Methods for Data Science
 
 <img width=250px src="https://www.plan4res.eu/wp-content/uploads/2018/02/University-of-Pisa-Italy.png" />
 
