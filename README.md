@@ -1,5 +1,6 @@
 <img width=250px src="https://www.plan4res.eu/wp-content/uploads/2018/02/University-of-Pisa-Italy.png" />
 
+# Stat
 Repository for Statistical Method for Data Science project exam.
 
 The project consists in analysing and assessment of business failure risk for a set of company, employing statistical parametric (i.e. statistical tests, regression, survival analysis) and non-parametric apporoaches on the dataset AIDA.
