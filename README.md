@@ -1,8 +1,7 @@
 # Statistical Methods for Data Science
+Risk of Business Failure - R - Project wrote in Italian language
 
 <img width=250px src="https://www.plan4res.eu/wp-content/uploads/2018/02/University-of-Pisa-Italy.png" />
-
-Risk of Business Failure - R - Project wrote in Italian language
 
 Repository for Statistical Method for Data Science project exam.
 
