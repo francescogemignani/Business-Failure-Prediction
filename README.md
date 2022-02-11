@@ -1,6 +1,8 @@
+# Risk-of-Business-Failure
+
+## Project of Statistical Methods for Data Science @ University of Pisa
 <img width=250px src="https://www.plan4res.eu/wp-content/uploads/2018/02/University-of-Pisa-Italy.png" />
 
-Project of the course of Statistical Methods for Data Science @ Univerisity of Pisa
 
 The project consists in analysing and assessment of business failure risk for a set of company, employing statistical parametric (i.e. statistical tests, regression, survival analysis) and non-parametric apporoaches on the dataset AIDA.
 Non-parametric approces are employed with data mining/machine learning alghoritms such as decision trees, neural networks, ensembles (and others) on the dataset.
