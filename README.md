@@ -1,4 +1,4 @@
-# Risk-of-Business-Failure
+# Business-Failure-Prediction
 ## Project for Statistical Methods for Data Science @ University of Pisa
 <img width=300px src="https://scontent-fco2-1.xx.fbcdn.net/v/t1.6435-9/124815645_787429535148388_3408121263467372740_n.jpg?_nc_cat=109&ccb=1-5&_nc_sid=e3f864&_nc_ohc=oXc_JWv_k3wAX_OdG8Q&_nc_ht=scontent-fco2-1.xx&oh=00_AT9dWXwHu_AAGGXoSxOsBOvaEZJrjZPUNV7QCYOO9t-aWQ&oe=622EAAA2"><img width=175px src="https://www.plan4res.eu/wp-content/uploads/2018/02/University-of-Pisa-Italy.png" />
 
